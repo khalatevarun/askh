@@ -1,5 +1,4 @@
 import { MoreVertical, RotateCcw } from 'lucide-react';
-import type { Checkpoint } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -8,6 +7,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card } from '@/components/ui/card';
+import { useAppSelector } from '@/store/hooks';
+import { selectCheckpoints } from '@/store/selectors';
 
 const MAX_LABEL_LEN = 45;
 
@@ -17,11 +18,12 @@ function truncate(label: string): string {
 }
 
 interface CheckpointListProps {
-  checkpoints: Checkpoint[];
   onRestore: (id: string) => void;
 }
 
-export function CheckpointList({ checkpoints, onRestore }: CheckpointListProps) {
+export function CheckpointList({ onRestore }: CheckpointListProps) {
+  const checkpoints = useAppSelector(selectCheckpoints);
+
   if (checkpoints.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-4 px-2">

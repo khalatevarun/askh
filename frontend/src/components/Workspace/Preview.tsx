@@ -1,11 +1,11 @@
 import type { WebContainer } from '@webcontainer/api';
-import type { FileItem } from '../../types';
-import { usePreviewManager, type PreviewStatus } from '../../hooks/usePreviewManager';
+import { usePreviewManager } from '../../hooks/usePreviewManager';
+import { useAppSelector } from '@/store/hooks';
+import { selectPreviewState } from '@/store/selectors';
+import type { PreviewStatus } from '@/store/previewSlice';
 
 interface PreviewProps {
   webContainer: WebContainer | null;
-  files: FileItem[];
-  isBuildingApp: boolean;
 }
 
 /** Status message map for non-running states. */
@@ -18,31 +18,28 @@ const STATUS_DISPLAY: Record<Exclude<PreviewStatus, 'running'>, { title: string;
   error: { title: 'Something went wrong', subtitle: 'Check the console for details' },
 };
 
-export function Preview({ webContainer, files, isBuildingApp }: PreviewProps) {
-  const { state, startManually } = usePreviewManager({
-    webContainer,
-    files,
-    isBuildingApp,
-  });
+export function Preview({ webContainer }: PreviewProps) {
+  const { startManually } = usePreviewManager({ webContainer });
+  const previewState = useAppSelector(selectPreviewState);
 
   // Preview is running — show iframe
-  if (state.status === 'running' && state.url) {
+  if (previewState.status === 'running' && previewState.url) {
     return (
       <div className="w-full h-full">
-        <iframe width="100%" height="100%" src={state.url} />
+        <iframe width="100%" height="100%" src={previewState.url} />
       </div>
     );
   }
 
   // All other states — show status message
-  const display = STATUS_DISPLAY[state.status as Exclude<PreviewStatus, 'running'>] ?? STATUS_DISPLAY.idle;
-  const showSpinner = ['building', 'mounting', 'installing', 'starting'].includes(state.status);
-  const showStartButton = state.status === 'idle' || state.status === 'error';
+  const display = STATUS_DISPLAY[previewState.status as Exclude<PreviewStatus, 'running'>] ?? STATUS_DISPLAY.idle;
+  const showSpinner = ['building', 'mounting', 'installing', 'starting'].includes(previewState.status);
+  const showStartButton = previewState.status === 'idle' || previewState.status === 'error';
 
   return (
     <div className="w-full h-full flex items-center justify-center">
       <div className="text-center">
-        <p className="mb-2">{state.error ?? display.title}</p>
+        <p className="mb-2">{previewState.error ?? display.title}</p>
         {display.subtitle && (
           <p className="text-sm text-gray-400 mb-4">{display.subtitle}</p>
         )}
@@ -54,7 +51,7 @@ export function Preview({ webContainer, files, isBuildingApp }: PreviewProps) {
             onClick={startManually}
             className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            {state.status === 'error' ? 'Retry' : 'Start Preview'}
+            {previewState.status === 'error' ? 'Retry' : 'Start Preview'}
           </button>
         )}
       </div>
