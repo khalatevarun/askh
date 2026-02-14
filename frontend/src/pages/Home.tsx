@@ -13,6 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectIsEnhancingPrompt } from '@/store/selectors';
+import { setIsEnhancingPrompt } from '@/store/workspaceSlice';
 
 const DEFAULT_FRAMEWORK: Framework = { webapp: 'react', service: '' };
 
@@ -28,8 +31,9 @@ const QUOTES = [
 
 
 export default function Home() {
+  const dispatch = useAppDispatch();
+  const isEnhancing = useAppSelector(selectIsEnhancingPrompt);
   const [idea, setIdea] = useState('');
-  const [isEnhancing, setIsEnhancing] = useState(false);
   const [framework, setFramework] = useState<Framework>(DEFAULT_FRAMEWORK);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -52,7 +56,7 @@ export default function Home() {
 
   const enhancePrompt = async () => {
     try {
-      setIsEnhancing(true);
+      dispatch(setIsEnhancingPrompt(true));
       const response = await fetch(`${BACKEND_URL}/enhance-prompt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,7 +87,7 @@ export default function Home() {
     } catch (error) {
       console.error('Error enhancing prompt:', error);
     } finally {
-      setIsEnhancing(false);
+      dispatch(setIsEnhancingPrompt(false));
     }
   };
 

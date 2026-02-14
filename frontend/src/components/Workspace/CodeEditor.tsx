@@ -1,11 +1,12 @@
 import Editor from '@monaco-editor/react';
+import { useAppSelector } from '@/store/hooks';
+import { selectSelectedFile } from '@/store/selectors';
+import { useFileEdit } from '@/hooks/useFileEdit';
 
-interface CodeEditorProps {
-  file: { name: string; content: string; path?: string } | null;
-  onChange?: (content: string) => void;
-}
+export default function CodeEditor() {
+  const file = useAppSelector(selectSelectedFile);
+  const { editFile: onChange } = useFileEdit();
 
-export default function CodeEditor({ file, onChange }: CodeEditorProps) {
   if (!file) {
     return (
       <div className="h-full flex items-center justify-center text-gray-400">
@@ -28,7 +29,7 @@ export default function CodeEditor({ file, onChange }: CodeEditorProps) {
       theme="vs-dark"
       language={language}
       value={file.content}
-      onChange={(value) => onChange && onChange(value ?? '')}
+      onChange={(value) => onChange(value ?? '')}
       onMount={(editor, monaco) => {
         // Suppress semantic diagnostics (e.g. "Cannot find module 'react'"); we have no
         // node_modules in the editor, so rely on the build (WebContainer) for real errors.
@@ -45,9 +46,7 @@ export default function CodeEditor({ file, onChange }: CodeEditorProps) {
         try {
           const key = monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS;
           editor.addCommand(key, () => {
-            if (onChange) {
-              onChange(editor.getValue());
-            }
+            onChange(editor.getValue());
           });
         } catch {
           // ignore if monaco keybindings not available

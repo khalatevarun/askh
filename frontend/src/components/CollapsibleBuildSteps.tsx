@@ -1,22 +1,21 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { BuildSteps } from './BuildSteps';
-import type { Step } from '@/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
+import { useAppSelector } from '@/store/hooks';
+import { selectSteps, selectCurrentStepId } from '@/store/selectors';
 
 interface CollapsibleBuildStepsProps {
-  steps: Step[];
-  currentStep: string;
   onStepClick: (stepId: string) => void;
 }
 
 export function CollapsibleBuildSteps({
-  steps,
-  currentStep,
   onStepClick,
 }: CollapsibleBuildStepsProps) {
   const [open, setOpen] = useState(false);
+  const steps = useAppSelector(selectSteps);
+  const currentStep = useAppSelector(selectCurrentStepId);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="border-t border-border pt-3 mt-3">
