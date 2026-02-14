@@ -24,6 +24,9 @@ const express_1 = __importDefault(require("express"));
 const openai_1 = __importDefault(require("openai"));
 const react_1 = require("./defaults/react");
 const node_1 = require("./defaults/node");
+const vue_1 = require("./defaults/vue");
+const svelte_1 = require("./defaults/svelte");
+const solid_1 = require("./defaults/solid");
 const prompts_1 = require("./prompts");
 const cors_1 = __importDefault(require("cors"));
 const openai = new openai_1.default({
@@ -34,41 +37,68 @@ const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 const MODEL = "arcee-ai/trinity-large-preview:free";
+const WEBAPP_FRAMEWORKS = ["react", "vue", "svelte", "solid"];
+function isWebappFramework(s) {
+    return WEBAPP_FRAMEWORKS.includes(s);
+}
+function getWebappBasePrompt(webapp) {
+    if (!isWebappFramework(webapp))
+        return react_1.basePrompt;
+    switch (webapp) {
+        case "react":
+            return react_1.basePrompt;
+        case "vue":
+            return vue_1.basePrompt;
+        case "svelte":
+            return svelte_1.basePrompt;
+        case "solid":
+            return solid_1.basePrompt;
+        default:
+            return react_1.basePrompt;
+    }
+}
 app.post("/template", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d;
     const prompt = req.body.prompt;
+    const raw = req.body.framework;
+    const framework = {
+        webapp: typeof (raw === null || raw === void 0 ? void 0 : raw.webapp) === "string" && isWebappFramework(raw.webapp) ? raw.webapp : "react",
+        service: typeof (raw === null || raw === void 0 ? void 0 : raw.service) === "string" ? raw.service : "",
+    };
     const response = yield openai.chat.completions.create({
         model: MODEL,
         messages: [
             {
                 role: "system",
-                content: "Return either node or react based on what do you think this project should be. Only return a single word either 'node' or 'react'. Do not return anything extra",
+                content: "Return exactly one word: webapp or service. Only return that word. Base your answer on whether the user wants a frontend web application or a backend/service/API.",
             },
             { role: "user", content: prompt },
         ],
         max_tokens: 50,
     });
-    const answer = (_d = (_c = (_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) === null || _c === void 0 ? void 0 : _c.trim().toLowerCase()) !== null && _d !== void 0 ? _d : "";
-    if (answer === "react") {
+    const projectType = ((_d = (_c = (_b = (_a = response.choices[0]) === null || _a === void 0 ? void 0 : _a.message) === null || _b === void 0 ? void 0 : _b.content) === null || _c === void 0 ? void 0 : _c.trim().toLowerCase()) !== null && _d !== void 0 ? _d : "").startsWith("service")
+        ? "service"
+        : "webapp";
+    const fileListNote = "\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n";
+    if (projectType === "service") {
         res.json({
+            projectType: "service",
             prompts: [
-                prompts_1.BASE_PROMPT,
-                `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${react_1.basePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
-            ],
-            uiPrompts: [react_1.basePrompt],
-        });
-        return;
-    }
-    if (answer === "node") {
-        res.json({
-            prompts: [
-                `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${react_1.basePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
+                `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${node_1.basePrompt}${fileListNote}`,
             ],
             uiPrompts: [node_1.basePrompt],
         });
         return;
     }
-    res.status(403).json({ message: "You cant access this" });
+    const basePrompt = getWebappBasePrompt(framework.webapp);
+    res.json({
+        projectType: "webapp",
+        prompts: [
+            prompts_1.BASE_PROMPT,
+            `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${basePrompt}${fileListNote}`,
+        ],
+        uiPrompts: [basePrompt],
+    });
 }));
 app.post("/enhance-prompt", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, e_1, _b, _c;
