@@ -1,7 +1,7 @@
 import { useReducer, useEffect, useRef, useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FileItem, Step, Checkpoint } from '../types';
-import { parseXml } from '../steps';
+import { getArtifactTitle, parseXml } from '../steps';
 import {
   applyStepsToFiles,
   updateFileByPath,
@@ -10,6 +10,7 @@ import {
   contentHash,
 } from '../utility/file-tree';
 import { buildModificationsBlock } from '../utility/bolt-modifications';
+import type { Framework } from '../types';
 import { getChatResponse, getTemplate } from '../utility/api';
 
 // ---------------------------------------------------------------------------
@@ -140,7 +141,12 @@ export interface UseWorkspaceReturn {
   editFile: (content: string) => void;
 }
 
-export function useWorkspace(initialPrompt: string): UseWorkspaceReturn {
+const DEFAULT_FRAMEWORK: Framework = { webapp: 'react', service: '' };
+
+export function useWorkspace(
+  initialPrompt: string,
+  framework: Framework = DEFAULT_FRAMEWORK
+): UseWorkspaceReturn {
   const [state, dispatch] = useReducer(workspaceReducer, INITIAL_STATE);
 
   // UI-only state (not part of the core reducer)
@@ -217,8 +223,9 @@ export function useWorkspace(initialPrompt: string): UseWorkspaceReturn {
   // ---- Init: fetch template, then chat ----
   useEffect(() => {
     async function init() {
-      const response = await getTemplate(initialPrompt);
-      const { prompts, uiPrompts } = response.data;
+      const response = await getTemplate(initialPrompt, framework);
+      const { prompts, uiPrompts, projectType: _projectType } = response.data;
+      void _projectType;
 
       // Atomically: apply boilerplate steps + phase → 'building'
       dispatch({ type: 'TEMPLATE_LOADED', xml: uiPrompts[0] });
@@ -242,7 +249,8 @@ export function useWorkspace(initialPrompt: string): UseWorkspaceReturn {
       const { files: newFiles } = applyStepsToFiles(filesAfterTemplate, newSteps);
       const stepsAfterTemplate = templateSteps.map(s => ({ ...s, status: 'completed' as const }));
       const allSteps = [...stepsAfterTemplate, ...newSteps.map(s => ({ ...s, status: 'completed' as const }))];
-      const cp = createCheckpoint(newFiles, allSteps, allMessages, initialPrompt, 1);
+      const label = getArtifactTitle(xml);
+      const cp = createCheckpoint(newFiles, allSteps, allMessages, label, 1);
       setCheckpoints(prev => [...prev, cp]);
 
       dispatch({ type: 'CODE_GENERATED', xml, messages: allMessages });
@@ -250,7 +258,7 @@ export function useWorkspace(initialPrompt: string): UseWorkspaceReturn {
     }
 
     init();
-  }, [initialPrompt, createCheckpoint]);
+  }, [initialPrompt, framework, createCheckpoint]);
 
   // ---- Follow-up prompt ----
   const submitFollowUp = useCallback(async () => {
@@ -262,7 +270,6 @@ export function useWorkspace(initialPrompt: string): UseWorkspaceReturn {
     }
     const newMessage = { role: 'user' as const, content };
     const allMessages = [...llmMessagesRef.current, newMessage];
-    const promptLabel = userPrompt;
 
     dispatch({ type: 'START_BUILDING' });
 
@@ -278,7 +285,8 @@ export function useWorkspace(initialPrompt: string): UseWorkspaceReturn {
     const { files: newFiles } = applyStepsToFiles(state.files, newSteps);
     const newStepsWithStatus = newSteps.map(s => ({ ...s, status: 'completed' as const }));
     const allSteps = [...state.steps, ...newStepsWithStatus];
-    const cp = createCheckpoint(newFiles, allSteps, fullMessages, promptLabel, checkpoints.length + 1);
+    const label = getArtifactTitle(xml);
+    const cp = createCheckpoint(newFiles, allSteps, fullMessages, label, checkpoints.length + 1);
     setCheckpoints(prev => [...prev, cp]);
 
     dispatch({ type: 'CODE_GENERATED', xml, messages: fullMessages });

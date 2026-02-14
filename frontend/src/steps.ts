@@ -30,6 +30,13 @@ import { v4 as uuidv4 } from 'uuid';
  * 
  * The input can have strings in the middle they need to be ignored
  */
+
+/** Extract the title from the first boltArtifact in the XML (e.g. for checkpoint labels). */
+export function getArtifactTitle(xml: string): string {
+  const titleMatch = xml.match(/title="([^"]*)"/);
+  return titleMatch ? titleMatch[1] : 'Project Files';
+}
+
 export function parseXml(response: string): Step[] {
     // Extract the XML content between <boltArtifact> tags
     console.log("REsponse", response);  
@@ -44,8 +51,7 @@ export function parseXml(response: string): Step[] {
     let stepId = 1; // todo - use uuid for unique id generation
   
     // Extract artifact title
-    const titleMatch = response.match(/title="([^"]*)"/);
-    const artifactTitle = titleMatch ? titleMatch[1] : 'Project Files';
+    const artifactTitle = getArtifactTitle(response);
   
     // Add initial artifact step
     steps.push({

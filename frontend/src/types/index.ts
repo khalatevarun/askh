@@ -34,6 +34,11 @@ export enum StepType {
     onClose: () => void;
   }
 
+export interface Framework {
+  webapp: string;
+  service: string;
+}
+
 export interface ChatMessage {
   role: string;
   content: string;
