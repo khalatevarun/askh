@@ -7,7 +7,7 @@ import { basePrompt as nodeBasePrompt } from "./defaults/node";
 import { basePrompt as vueBasePrompt } from "./defaults/vue";
 import { basePrompt as svelteBasePrompt } from "./defaults/svelte";
 import { basePrompt as solidBasePrompt } from "./defaults/solid";
-import { BASE_PROMPT, getSystemPrompt } from "./prompts";
+import { getBaseDesignPrompt, getSystemPrompt } from "./prompts";
 import cors from "cors";
 
 const openai = new OpenAI({
@@ -87,7 +87,7 @@ app.post("/template", async (req, res) => {
   res.json({
     projectType: "webapp",
     prompts: [
-      BASE_PROMPT,
+      getBaseDesignPrompt(framework.webapp),
       `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${basePrompt}${fileListNote}`,
     ],
     uiPrompts: [basePrompt],
