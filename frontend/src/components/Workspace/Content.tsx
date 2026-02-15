@@ -10,13 +10,15 @@ import { selectSelectedFile } from '@/store/selectors';
 interface ContentProps {
   webContainer: WebContainer | null;
   onDownload?: () => void;
+  editorReadOnly?: boolean;
 }
 
 export default function Content({
   webContainer,
   onDownload,
+  editorReadOnly = false,
 }: ContentProps) {
-  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
+  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('preview');
   const selectedFile = useAppSelector(selectSelectedFile);
 
   // Switch to code tab when the user selects a file
@@ -41,7 +43,7 @@ export default function Content({
             <FileExplorer />
           </div>
           <div className="flex-1 min-w-0">
-            <CodeEditor />
+            <CodeEditor readOnly={editorReadOnly} />
           </div>
         </div>
 
@@ -49,7 +51,7 @@ export default function Content({
           className={`absolute inset-0 z-10 ${showPreview ? 'visible' : 'invisible pointer-events-none'}`}
           aria-hidden={!showPreview}
         >
-          <Preview webContainer={webContainer} isVisible={showPreview} />
+          <Preview webContainer={webContainer} />
         </div>
       </div>
     </div>

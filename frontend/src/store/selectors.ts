@@ -15,6 +15,7 @@ export const selectActiveOperations = (state: RootState) => state.workspace.acti
 export const selectGlobalError = (state: RootState) => state.workspace.globalError;
 export const selectIsEnhancingPrompt = (state: RootState) => state.workspace.isEnhancingPrompt;
 export const selectCheckpoints = (state: RootState) => state.checkpoint.checkpoints;
+export const selectChatItems = (state: RootState) => state.chat.items;
 export const selectPreviewState = (state: RootState) => state.preview;
 
 export const selectIsBuildingApp = createSelector(

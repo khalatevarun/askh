@@ -3,7 +3,11 @@ import { useAppSelector } from '@/store/hooks';
 import { selectSelectedFile } from '@/store/selectors';
 import { useFileEdit } from '@/hooks/useFileEdit';
 
-export default function CodeEditor() {
+interface CodeEditorProps {
+  readOnly?: boolean;
+}
+
+export default function CodeEditor({ readOnly = false }: CodeEditorProps) {
   const file = useAppSelector(selectSelectedFile);
   const { editFile: onChange } = useFileEdit();
 
@@ -57,6 +61,7 @@ export default function CodeEditor() {
         fontSize: 14,
         wordWrap: 'on',
         scrollBeyondLastLine: false,
+        readOnly,
       }}
     />
   );
