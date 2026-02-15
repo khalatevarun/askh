@@ -1,8 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import Content from '@/components/Workspace/Content';
-import { CheckpointList } from '@/components/CheckpointList';
-import { CollapsibleBuildSteps } from '@/components/CollapsibleBuildSteps';
+import { ChatTimeline } from '@/components/ChatTimeline';
 import { useWebContainer } from '@/hooks/useWebContainer';
 import { useBlobStore } from '@/hooks/useBlobStore';
 import { handleDownload } from '@/utility/helper';
@@ -14,7 +13,6 @@ import { ArrowUp, Sparkles } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   selectFiles,
-  selectSteps,
   selectUserPrompt,
   selectCheckpoints,
   selectIsFollowUpDisabled,
@@ -24,11 +22,11 @@ import {
 import {
   setWorkspaceParams,
   setUserPrompt,
-  setCurrentStepId,
   setIsEnhancingPrompt,
   initWorkspace,
   submitFollowUp,
 } from '@/store/workspaceSlice';
+import { appendChatItems, clearChat } from '@/store/chatSlice';
 import { getArtifactTitle, parseXml } from '@/steps';
 import { applyStepsToFiles } from '@/utility/file-tree';
 
@@ -43,7 +41,7 @@ export default function Workspace() {
 
   const dispatch = useAppDispatch();
   const files = useAppSelector(selectFiles);
-  const steps = useAppSelector(selectSteps);
+  const steps = useAppSelector((state) => state.workspace.steps);
   const userPrompt = useAppSelector(selectUserPrompt);
   const checkpoints = useAppSelector(selectCheckpoints);
   const isFollowUpDisabled = useAppSelector(selectIsFollowUpDisabled);
@@ -60,6 +58,7 @@ export default function Workspace() {
   // Init workspace on mount
   useEffect(() => {
     dispatch(setWorkspaceParams({ prompt, framework }));
+    dispatch(clearChat());
     dispatch(initWorkspace({ prompt, framework })).then((result) => {
       if (initWorkspace.fulfilled.match(result)) {
         const { uiXml, chatXml, allMessages } = result.payload;
@@ -71,7 +70,8 @@ export default function Workspace() {
         const stepsAfterTemplate = templateSteps.map(s => ({ ...s, status: 'completed' as const }));
         const allSteps = [...stepsAfterTemplate, ...newSteps.map(s => ({ ...s, status: 'completed' as const }))];
         const label = getArtifactTitle(chatXml);
-        createCheckpoint(newFiles, allSteps, allMessages, label, 1);
+        const cp = createCheckpoint(newFiles, allSteps, allMessages, label, 1);
+        dispatch(appendChatItems({ messages: allMessages.slice(2), checkpointId: cp.id }));
         updateFilesAtLastLlmRef(newFiles);
       }
     });
@@ -86,10 +86,13 @@ export default function Workspace() {
       const newStepsWithStatus = newSteps.map(s => ({ ...s, status: 'completed' as const }));
       const allSteps = [...steps, ...newStepsWithStatus];
       const label = getArtifactTitle(xml);
-      createCheckpoint(newFiles, allSteps, allMessages, label, checkpoints.length + 1);
+      const cp = createCheckpoint(newFiles, allSteps, allMessages, label, checkpoints.length + 1);
+      const prevLen = checkpoints.length === 0 ? 0 : checkpoints[checkpoints.length - 1].llmMessages.length;
+      const newMessages = allMessages.slice(prevLen);
+      dispatch(appendChatItems({ messages: newMessages, checkpointId: cp.id }));
       updateFilesAtLastLlmRef(newFiles);
     }
-  }, [dispatch, filesAtLastLlmRef, files, steps, checkpoints.length, createCheckpoint, updateFilesAtLastLlmRef]);
+  }, [dispatch, filesAtLastLlmRef, files, steps, checkpoints, createCheckpoint, updateFilesAtLastLlmRef]);
 
   const enhancePrompt = useCallback(async () => {
     const message = userPrompt.trim();
@@ -136,13 +139,16 @@ export default function Workspace() {
 
   return (
     <div className="h-screen flex bg-background text-foreground dark">
-      {/* Left Sidebar - Checkpoints + collapsible Build steps */}
-      <div className="w-80 border-r border-border bg-card p-4 overflow-y-auto flex flex-col gap-4">
-        <CheckpointList onRestore={restoreFromCheckpoint} />
-        <CollapsibleBuildSteps
-          onStepClick={(id: string) => dispatch(setCurrentStepId(id))}
-        />
-        <div className="mt-auto flex-shrink-0">
+      {/* Left Sidebar - Chat timeline + prompt */}
+      <div className="w-96 border-r border-border bg-card p-4 flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <ChatTimeline
+            initialPrompt={prompt}
+            onRestore={restoreFromCheckpoint}
+            isWaitingForResponse={isBuildingApp}
+          />
+        </div>
+        <div className="mt-4 flex-shrink-0">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -153,6 +159,7 @@ export default function Workspace() {
             <Textarea
               value={userPrompt}
               onChange={(e) => dispatch(setUserPrompt(e.target.value))}
+              disabled={isBuildingApp || isEnhancing}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -187,10 +194,11 @@ export default function Workspace() {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <Content
           webContainer={webContainer}
           onDownload={() => handleDownload(files)}
+          editorReadOnly={isBuildingApp}
         />
       </div>
     </div>
