@@ -1,8 +1,28 @@
 import { MODIFICATIONS_TAG_NAME, WORK_DIR, allowedHTMLElements } from './constants';
 import { stripIndents } from './stripindents';
 
+const SHARED_DESIGN_PROMPT =
+  'For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production. Use Tailwind CSS for styling. Do not install other packages for UI themes, icons, etc unless absolutely necessary. Use stock photos from unsplash where appropriate, only valid URLs you know exist. Do not download the images, only link to them in image tags.';
 
-export const BASE_PROMPT = "For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production.\n\nBy default, this template supports JSX syntax with Tailwind CSS classes, React hooks, and Lucide React for icons. Do not install other packages for UI themes, icons, etc unless absolutely necessary or I request them.\n\nUse icons from lucide-react for logos.\n\nUse stock photos from unsplash where appropriate, only valid URLs you know exist. Do not download the images, only link to them in image tags.";
+const FRAMEWORK_DESIGN_PROMPTS: Record<string, string> = {
+  react:
+    'This template supports JSX syntax, React hooks, and Lucide React for icons. Use icons from lucide-react for logos.',
+  vue:
+    'This template uses Vue 3 Composition API and SFC syntax. Use lucide-vue-next for icons.',
+  svelte: 'This template uses Svelte components. Use lucide-svelte for icons.',
+  solid:
+    'This template uses Solid JSX. Use solid-icons or lucide-solid if needed for icons.',
+};
+
+/**
+ * Returns framework-specific design/styling instructions for the given webapp.
+ * Unknown frameworks fall back to React.
+ */
+export function getBaseDesignPrompt(webapp: string): string {
+  const frameworkPart =
+    FRAMEWORK_DESIGN_PROMPTS[webapp] ?? FRAMEWORK_DESIGN_PROMPTS.react;
+  return `${SHARED_DESIGN_PROMPT}\n\n${frameworkPart}`;
+}
 
 export const getSystemPrompt = (cwd: string = WORK_DIR) => `
 You are Buildman, an expert AI assistant and exceptional senior software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
