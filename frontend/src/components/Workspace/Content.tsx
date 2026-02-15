@@ -4,28 +4,22 @@ import Tabs from './Tabs';
 import CodeEditor from './CodeEditor';
 import { Preview } from './Preview';
 import FileExplorer from '@/components/FileExplorer/FileExplorer';
-import type { FileItem } from '@/types';
+import { useAppSelector } from '@/store/hooks';
+import { selectSelectedFile } from '@/store/selectors';
 
 interface ContentProps {
   webContainer: WebContainer | null;
-  selectedFile: { name: string; content: string; path?: string } | null;
-  onFileSelect: (file: { name: string; content: string; path: string }) => void;
-  onFileChange?: (content: string) => void;
   onDownload?: () => void;
-  files: FileItem[];
-  isBuildingApp: boolean;
+  editorReadOnly?: boolean;
 }
 
 export default function Content({
-  selectedFile,
-  onFileSelect,
   webContainer,
-  onFileChange,
   onDownload,
-  files,
-  isBuildingApp,
+  editorReadOnly = false,
 }: ContentProps) {
-  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
+  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('preview');
+  const selectedFile = useAppSelector(selectSelectedFile);
 
   // Switch to code tab when the user selects a file
   useEffect(() => {
@@ -46,22 +40,18 @@ export default function Content({
           aria-hidden={!showCode}
         >
           <div className="w-64 border-r border-border flex-shrink-0 flex flex-col min-h-0 bg-card">
-            <FileExplorer files={files} onFileSelect={onFileSelect} />
+            <FileExplorer />
           </div>
           <div className="flex-1 min-w-0">
-            <CodeEditor file={selectedFile} onChange={onFileChange} />
+            <CodeEditor readOnly={editorReadOnly} />
           </div>
         </div>
-       
+
         <div
           className={`absolute inset-0 z-10 ${showPreview ? 'visible' : 'invisible pointer-events-none'}`}
           aria-hidden={!showPreview}
         >
-          <Preview
-            webContainer={webContainer}
-            files={files}
-            isBuildingApp={isBuildingApp}
-          />
+          <Preview webContainer={webContainer} />
         </div>
       </div>
     </div>

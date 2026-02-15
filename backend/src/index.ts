@@ -4,7 +4,10 @@ import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { basePrompt as reactBasePrompt } from "./defaults/react";
 import { basePrompt as nodeBasePrompt } from "./defaults/node";
-import { BASE_PROMPT, getSystemPrompt } from "./prompts";
+import { basePrompt as vueBasePrompt } from "./defaults/vue";
+import { basePrompt as svelteBasePrompt } from "./defaults/svelte";
+import { basePrompt as solidBasePrompt } from "./defaults/solid";
+import { getBaseDesignPrompt, getSystemPrompt } from "./prompts";
 import cors from "cors";
 
 const openai = new OpenAI({
@@ -18,8 +21,36 @@ app.use(express.json());
 
 const MODEL = "arcee-ai/trinity-large-preview:free";
 
+const WEBAPP_FRAMEWORKS = ["react", "vue", "svelte", "solid"] as const;
+type WebappFramework = (typeof WEBAPP_FRAMEWORKS)[number];
+
+function isWebappFramework(s: string): s is WebappFramework {
+  return WEBAPP_FRAMEWORKS.includes(s as WebappFramework);
+}
+
+function getWebappBasePrompt(webapp: string): string {
+  if (!isWebappFramework(webapp)) return reactBasePrompt;
+  switch (webapp) {
+    case "react":
+      return reactBasePrompt;
+    case "vue":
+      return vueBasePrompt;
+    case "svelte":
+      return svelteBasePrompt;
+    case "solid":
+      return solidBasePrompt;
+    default:
+      return reactBasePrompt;
+  }
+}
+
 app.post("/template", async (req, res) => {
   const prompt = req.body.prompt;
+  const raw = req.body.framework;
+  const framework = {
+    webapp: typeof raw?.webapp === "string" && isWebappFramework(raw.webapp) ? raw.webapp : "react",
+    service: typeof raw?.service === "string" ? raw.service : "",
+  };
 
   const response = await openai.chat.completions.create({
     model: MODEL,
@@ -27,36 +58,40 @@ app.post("/template", async (req, res) => {
       {
         role: "system",
         content:
-          "Return either node or react based on what do you think this project should be. Only return a single word either 'node' or 'react'. Do not return anything extra",
+          "Return exactly one word: webapp or service. Only return that word. Base your answer on whether the user wants a frontend web application or a backend/service/API.",
       },
       { role: "user", content: prompt },
     ],
     max_tokens: 50,
   });
 
-  const answer = response.choices[0]?.message?.content?.trim().toLowerCase() ?? "";
-  if (answer === "react") {
-    res.json({
-      prompts: [
-        BASE_PROMPT,
-        `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
-      ],
-      uiPrompts: [reactBasePrompt],
-    });
-    return;
-  }
+  const projectType = (response.choices[0]?.message?.content?.trim().toLowerCase() ?? "").startsWith("service")
+    ? "service"
+    : "webapp";
 
-  if (answer === "node") {
+  const fileListNote =
+    "\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n";
+
+  if (projectType === "service") {
     res.json({
+      projectType: "service",
       prompts: [
-        `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
+        `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${nodeBasePrompt}${fileListNote}`,
       ],
       uiPrompts: [nodeBasePrompt],
     });
     return;
   }
 
-  res.status(403).json({ message: "You cant access this" });
+  const basePrompt = getWebappBasePrompt(framework.webapp);
+  res.json({
+    projectType: "webapp",
+    prompts: [
+      getBaseDesignPrompt(framework.webapp),
+      `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${basePrompt}${fileListNote}`,
+    ],
+    uiPrompts: [basePrompt],
+  });
 });
 
 app.post("/enhance-prompt", async (req, res) => {

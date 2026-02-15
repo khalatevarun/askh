@@ -29,24 +29,22 @@ export enum StepType {
     path: string;
   }
   
-  export interface FileViewerProps {
-    file: FileItem | null;
-    onClose: () => void;
-  }
+export interface Framework {
+  webapp: string;
+  service: string;
+}
 
 export interface ChatMessage {
   role: string;
   content: string;
 }
 
-/** Checkpoint: content-addressable snapshot (tree = path → contentHash). */
 export interface Checkpoint {
   id: string;
   version: number;
   label: string;
   createdAt: number;
-  /** path → content hash (resolve via blob store). */
-  tree: Record<string, string>;
+  files: FileItem[];
   steps: Step[];
   llmMessages: { role: 'user' | 'assistant'; content: string }[];
 }

@@ -1,11 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CONTINUE_PROMPT = exports.getSystemPrompt = exports.BASE_PROMPT = void 0;
+exports.CONTINUE_PROMPT = exports.getSystemPrompt = void 0;
+exports.getBaseDesignPrompt = getBaseDesignPrompt;
 const constants_1 = require("./constants");
 const stripindents_1 = require("./stripindents");
-exports.BASE_PROMPT = "For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production.\n\nBy default, this template supports JSX syntax with Tailwind CSS classes, React hooks, and Lucide React for icons. Do not install other packages for UI themes, icons, etc unless absolutely necessary or I request them.\n\nUse icons from lucide-react for logos.\n\nUse stock photos from unsplash where appropriate, only valid URLs you know exist. Do not download the images, only link to them in image tags.";
+const SHARED_DESIGN_PROMPT = 'For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production. Use Tailwind CSS for styling. Do not install other packages for UI themes, icons, etc unless absolutely necessary. Use stock photos from unsplash where appropriate, only valid URLs you know exist. Do not download the images, only link to them in image tags.';
+const FRAMEWORK_DESIGN_PROMPTS = {
+    react: 'This template supports JSX syntax, React hooks, and Lucide React for icons. Use icons from lucide-react for logos.',
+    vue: 'This template uses Vue 3 Composition API and SFC syntax. Use lucide-vue-next for icons.',
+    svelte: 'This template uses Svelte components. Use lucide-svelte for icons.',
+    solid: 'This template uses Solid JSX. Use solid-icons or lucide-solid if needed for icons.',
+};
+/**
+ * Returns framework-specific design/styling instructions for the given webapp.
+ * Unknown frameworks fall back to React.
+ */
+function getBaseDesignPrompt(webapp) {
+    var _a;
+    const frameworkPart = (_a = FRAMEWORK_DESIGN_PROMPTS[webapp]) !== null && _a !== void 0 ? _a : FRAMEWORK_DESIGN_PROMPTS.react;
+    return `${SHARED_DESIGN_PROMPT}\n\n${frameworkPart}`;
+}
 const getSystemPrompt = (cwd = constants_1.WORK_DIR) => `
-You are Buildman, an expert AI assistant and exceptional senior software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
+You are ASKH, an expert AI assistant and exceptional senior software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
 
 <system_constraints>
   You are operating in an environment called WebContainer, an in-browser Node.js runtime that emulates a Linux system to some degree. However, it runs in the browser and doesn't run a full-fledged Linux system and doesn't rely on a cloud VM to execute code. All code is executed in the browser. It does come with a shell that emulates zsh. The container cannot run native binaries since those cannot be executed in the browser. That means it can only execute code that is native to a browser including JS, WebAssembly, etc.

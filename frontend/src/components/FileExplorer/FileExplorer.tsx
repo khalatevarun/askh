@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { FolderTree } from 'lucide-react';
 import FileItem from './FileItem';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectFiles } from '@/store/selectors';
+import { setSelectedFile } from '@/store/workspaceSlice';
 
 interface FileNode {
   name: string;
@@ -9,12 +12,9 @@ interface FileNode {
   children?: FileNode[];
 }
 
-interface FileExplorerProps {
-  onFileSelect: (file: { name: string; content: string; path: string }) => void;
-  files: FileNode[];
-}
-
-export default function FileExplorer({ onFileSelect, files }: FileExplorerProps) {
+export default function FileExplorer() {
+  const dispatch = useAppDispatch();
+  const files = useAppSelector(selectFiles);
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set(['/']));
 
   const toggleFolder = (path: string) => {
@@ -26,6 +26,13 @@ export default function FileExplorer({ onFileSelect, files }: FileExplorerProps)
     }
     setOpenFolders(newOpenFolders);
   };
+
+  const handleFileSelect = useCallback(
+    (file: { name: string; content: string; path: string }) => {
+      dispatch(setSelectedFile(file));
+    },
+    [dispatch]
+  );
 
   const renderFileTree = (nodes: FileNode[], path = '') => {
     return nodes.map((node) => {
@@ -40,7 +47,7 @@ export default function FileExplorer({ onFileSelect, files }: FileExplorerProps)
             level={currentPath.split('/').length - 1}
             isOpen={isOpen}
             onToggle={() => toggleFolder(currentPath)}
-            onSelect={() => node.type === 'file' && node.content && onFileSelect({
+            onSelect={() => node.type === 'file' && node.content && handleFileSelect({
               name: node.name,
               content: node.content,
               path: currentPath

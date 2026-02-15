@@ -1,10 +1,10 @@
-# Buildman - Agent Development Guidelines
+# ASKH - Agent Development Guidelines
 
-This document contains guidelines and commands for agentic coding agents working on the Buildman project.
+This document contains guidelines and commands for agentic coding agents working on the ASKH project.
 
 ## Project Overview
 
-Buildman is a full-stack web application consisting of:
+ASKH is a full-stack web application consisting of:
 - **Backend**: Node.js/Express API with TypeScript, OpenAI SDK (OpenRouter) integration
 - **Frontend**: React + TypeScript + Vite with Tailwind CSS, Monaco Editor, WebContainer API
 
