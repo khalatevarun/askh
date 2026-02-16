@@ -83,17 +83,17 @@ interface FollowUpResult {
 
 export const submitFollowUp = createAsyncThunk<
   FollowUpResult,
-  { filesAtLastLlmRef: Array<{ path: string; content: string }> | null },
+  { filesAtLastLlmRef: Array<{ path: string; content: string }> | null; userPrompt: string },
   { state: { workspace: WorkspaceState } }
 >(
   'workspace/followUp',
-  async ({ filesAtLastLlmRef }, { getState }) => {
+  async ({ filesAtLastLlmRef, userPrompt }, { getState }) => {
     const { workspace } = getState();
     const currentFlat = flattenFiles(workspace.files);
-    let content = workspace.userPrompt;
+    let content = userPrompt;
     if (filesAtLastLlmRef != null) {
       const block = buildModificationsBlock(filesAtLastLlmRef, currentFlat);
-      if (block) content = `${block}\n\n${workspace.userPrompt}`;
+      if (block) content = `${block}\n\n${userPrompt}`;
     }
     const newMessage = { role: 'user' as const, content };
     const allMessages = [...workspace.llmMessages, newMessage];
@@ -199,7 +199,6 @@ const workspaceSlice = createSlice({
         state.files = files;
         state.llmMessages = action.payload.allMessages;
         state.phase = 'ready';
-        state.userPrompt = '';
         delete state.activeOperations['workspace:followUp'];
       })
       .addCase(submitFollowUp.rejected, (state, action) => {
