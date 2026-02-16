@@ -60,7 +60,7 @@ export default function Home() {
       const response = await fetch(`${BACKEND_URL}/enhance-prompt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: idea }),
+        body: JSON.stringify({ message: idea, framework }),
       });
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No reader available');

@@ -18,6 +18,7 @@ import {
   selectIsFollowUpDisabled,
   selectIsEnhancingPrompt,
   selectIsBuildingApp,
+  selectLlmMessages,
 } from '@/store/selectors';
 import {
   setWorkspaceParams,
@@ -99,16 +100,22 @@ export default function Workspace() {
     }
   }, [dispatch, filesAtLastLlmRef, files, checkpoints, createCheckpoint, updateFilesAtLastLlmRef]);
 
+  const llmMessages = useAppSelector(selectLlmMessages);
+
   const enhancePrompt = useCallback(async () => {
     const message = userPrompt.trim();
     if (!message) return;
     try {
       dispatch(setIsEnhancingPrompt(true));
       dispatch(setUserPrompt(''));
+      const context = llmMessages.slice(-4).map((m) => ({
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : '',
+      }));
       const response = await fetch(`${BACKEND_URL}/enhance-prompt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, framework, context: context.length > 0 ? context : undefined }),
       });
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No reader available');
@@ -140,7 +147,7 @@ export default function Workspace() {
     } finally {
       dispatch(setIsEnhancingPrompt(false));
     }
-  }, [userPrompt, dispatch]);
+  }, [userPrompt, llmMessages, dispatch]);
 
   return (
     <div className="h-screen flex bg-background text-foreground dark">
