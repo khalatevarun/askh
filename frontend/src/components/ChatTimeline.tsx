@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppSelector } from '@/store/hooks';
 import { selectChatItems } from '@/store/selectors';
 import type { ChatItem } from '@/store/chatSlice';
 import { CheckpointCard } from '@/components/CheckpointCard';
+import { fadeSlideUp, fadeIn, staggerContainer } from '@/utility/motion';
 
 interface ChatTimelineProps {
   initialPrompt?: string;
@@ -36,12 +38,18 @@ function MessageBubble({ item }: { item: ChatItem }) {
 
 function ThinkingBubble() {
   return (
-    <div className="flex justify-start">
+    <motion.div
+      variants={fadeIn}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="flex justify-start"
+    >
       <div className="max-w-[85%] rounded-xl rounded-bl-md border border-border bg-muted/50 px-3 py-2.5 text-sm text-foreground flex items-center gap-2">
         <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
         <span className="text-muted-foreground">Working on it…</span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -57,12 +65,16 @@ export function ChatTimeline({ initialPrompt, onPreview, onRevert, isWaitingForR
     if (initialPrompt) {
       return (
         <div ref={scrollRef} className="flex flex-col gap-3 py-2 pr-1">
-          <div className="flex justify-end">
-            <div className="max-w-[85%] rounded-xl rounded-br-md bg-primary/90 text-primary-foreground px-3 py-2 text-sm">
-              {initialPrompt}
+          <motion.div variants={fadeSlideUp} initial="initial" animate="animate">
+            <div className="flex justify-end">
+              <div className="max-w-[85%] rounded-xl rounded-br-md bg-primary/90 text-primary-foreground px-3 py-2 text-sm">
+                {initialPrompt}
+              </div>
             </div>
-          </div>
-          {isWaitingForResponse && <ThinkingBubble />}
+          </motion.div>
+          <AnimatePresence>
+            {isWaitingForResponse && <ThinkingBubble />}
+          </AnimatePresence>
         </div>
       );
     }
@@ -74,22 +86,47 @@ export function ChatTimeline({ initialPrompt, onPreview, onRevert, isWaitingForR
   }
 
   return (
-    <div ref={scrollRef} className="flex flex-col gap-3 overflow-y-auto py-2 pr-1">
-      {items.map((item, index) => {
-        if (item.type === 'checkpoint') {
+    <motion.div
+      ref={scrollRef}
+      className="flex flex-col gap-3 overflow-y-auto py-2 pr-1"
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+    >
+      <AnimatePresence initial={false}>
+        {items.map((item, index) => {
+          if (item.type === 'checkpoint') {
+            return (
+              <motion.div
+                key={`${item.checkpointId}-${index}`}
+                variants={fadeSlideUp}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="flex justify-start"
+              >
+                <div className="w-full max-w-[95%]">
+                  <CheckpointCard checkpointId={item.checkpointId} onPreview={onPreview} onRevert={onRevert} />
+                </div>
+              </motion.div>
+            );
+          }
           return (
-            <div key={`${item.checkpointId}-${index}`} className="flex justify-start">
-              <div className="w-full max-w-[95%]">
-                <CheckpointCard checkpointId={item.checkpointId} onPreview={onPreview} onRevert={onRevert} />
-              </div>
-            </div>
+            <motion.div
+              key={`${item.type}-${index}`}
+              variants={fadeSlideUp}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <MessageBubble item={item} />
+            </motion.div>
           );
-        }
-        return (
-          <MessageBubble key={`${item.type}-${index}`} item={item} />
-        );
-      })}
-      {isWaitingForResponse && <ThinkingBubble />}
-    </div>
+        })}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isWaitingForResponse && <ThinkingBubble />}
+      </AnimatePresence>
+    </motion.div>
   );
 }

@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import { FolderTree } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import FileItem from './FileItem';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectFiles } from '@/store/selectors';
 import { setSelectedFile } from '@/store/workspaceSlice';
+import { collapseExpand } from '@/utility/motion';
 
 interface FileNode {
   name: string;
@@ -53,9 +55,20 @@ export default function FileExplorer() {
               path: currentPath
             })}
           />
-          {node.type === 'folder' && isOpen && node.children && (
-            <div>{renderFileTree(node.children, currentPath)}</div>
-          )}
+          <AnimatePresence initial={false}>
+            {node.type === 'folder' && isOpen && node.children && (
+              <motion.div
+                key={`${currentPath}-children`}
+                variants={collapseExpand}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                style={{ overflow: 'hidden' }}
+              >
+                {renderFileTree(node.children, currentPath)}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       );
     });

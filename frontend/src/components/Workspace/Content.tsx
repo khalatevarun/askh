@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import type { WebContainer } from '@webcontainer/api';
 import Tabs from './Tabs';
 import CodeEditor from './CodeEditor';
@@ -35,8 +36,11 @@ export default function Content({
     <div className="h-full flex flex-col">
       <Tabs activeTab={activeTab} onTabChange={setActiveTab} onDownload={onDownload} />
       <div className="flex-1 min-h-0 relative">
-        <div
-          className={`absolute inset-0 flex z-0 ${showCode ? 'visible' : 'invisible pointer-events-none'}`}
+        <motion.div
+          className="absolute inset-0 flex z-0"
+          animate={{ opacity: showCode ? 1 : 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          style={{ pointerEvents: showCode ? 'auto' : 'none' }}
           aria-hidden={!showCode}
         >
           <div className="w-64 border-r border-border flex-shrink-0 flex flex-col min-h-0 bg-card">
@@ -45,14 +49,17 @@ export default function Content({
           <div className="flex-1 min-w-0">
             <CodeEditor readOnly={editorReadOnly} />
           </div>
-        </div>
+        </motion.div>
 
-        <div
-          className={`absolute inset-0 z-10 ${showPreview ? 'visible' : 'invisible pointer-events-none'}`}
+        <motion.div
+          className="absolute inset-0 z-10"
+          animate={{ opacity: showPreview ? 1 : 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          style={{ pointerEvents: showPreview ? 'auto' : 'none' }}
           aria-hidden={!showPreview}
         >
           <Preview webContainer={webContainer} />
-        </div>
+        </motion.div>
       </div>
     </div>
   );
