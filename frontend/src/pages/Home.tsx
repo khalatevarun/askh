@@ -2,11 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, ArrowUp, Code, Eye, Edit, Layers, X } from 'lucide-react';
-import { BACKEND_URL } from '@/utility/api';
+import { BACKEND_URL, readSseStream } from '@/utility/api';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Framework } from '@/types';
+import { DEFAULT_FRAMEWORK, type Framework } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,6 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectIsEnhancingPrompt } from '@/store/selectors';
 import { setIsEnhancingPrompt } from '@/store/workspaceSlice';
 
-const DEFAULT_FRAMEWORK: Framework = { webapp: 'react', service: '' };
 
 const QUOTES = [
   "If you can name it, you can askh for it.",
@@ -62,28 +61,8 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: idea, framework }),
       });
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No reader available');
       setIdea('');
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(5);
-            if (data === '[DONE]') break;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.text) setIdea((c) => c + parsed.text);
-            } catch {
-              // ignore parse errors
-            }
-          }
-        }
-      }
+      await readSseStream(response, (text) => setIdea((c) => c + text));
     } catch (error) {
       console.error('Error enhancing prompt:', error);
     } finally {

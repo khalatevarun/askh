@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { FileItem, Checkpoint } from '../types';
+import type { Checkpoint, FileItem } from '../types';
 import {
   flattenFiles,
   buildFileTreeFromFlatList,
@@ -43,44 +43,39 @@ export function useCheckpoint() {
     [dispatch]
   );
 
-  const restoreFromCheckpoint = useCallback(
-    (id: string) => {
-      const cp = checkpoints.find(c => c.id === id);
-      if (!cp) return;
+  /** Rebuild the file tree from a checkpoint and apply it to the store. */
+  const applyCheckpoint = useCallback(
+    (cp: Checkpoint) => {
       const flat = Object.entries(cp.tree).map(([path, content]) => ({
         path,
         content,
       }));
       const files = buildFileTreeFromFlatList(flat);
-      dispatch(restoreCheckpoint({
-        files,
-        llmMessages: cp.llmMessages,
-      }));
+      dispatch(restoreCheckpoint({ files, llmMessages: cp.llmMessages }));
       dispatch(setSelectedFile(null));
       filesAtLastLlmRef.current = flat;
     },
-    [checkpoints, dispatch]
+    [dispatch]
+  );
+
+  const restoreFromCheckpoint = useCallback(
+    (id: string) => {
+      const cp = checkpoints.find(c => c.id === id);
+      if (!cp) return;
+      applyCheckpoint(cp);
+    },
+    [checkpoints, applyCheckpoint]
   );
 
   const revertFromCheckpoint = useCallback(
     (id: string) => {
       const cp = checkpoints.find(c => c.id === id);
       if (!cp) return;
-      const flat = Object.entries(cp.tree).map(([path, content]) => ({
-        path,
-        content,
-      }));
-      const files = buildFileTreeFromFlatList(flat);
-      dispatch(restoreCheckpoint({
-        files,
-        llmMessages: cp.llmMessages,
-      }));
-      dispatch(setSelectedFile(null));
+      applyCheckpoint(cp);
       dispatch(revertCheckpointAction(id));
       dispatch(truncateChatAfterCheckpoint(id));
-      filesAtLastLlmRef.current = flat;
     },
-    [checkpoints, dispatch]
+    [checkpoints, applyCheckpoint, dispatch]
   );
 
   const updateFilesAtLastLlmRef = useCallback(

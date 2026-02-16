@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import type { FileItem, Framework } from '../types';
+import { DEFAULT_FRAMEWORK, type FileItem, type Framework } from '../types';
 import { parseXml } from '../steps';
 import {
   applyStepsToFiles,
@@ -23,8 +23,6 @@ export interface WorkspaceState {
   globalError: string | null;
   isEnhancingPrompt: boolean;
 }
-
-const DEFAULT_FRAMEWORK: Framework = { webapp: 'react', service: '' };
 
 const initialState: WorkspaceState = {
   phase: 'idle',
