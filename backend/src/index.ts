@@ -95,26 +95,47 @@ app.post("/template", async (req, res) => {
 });
 
 app.post("/enhance-prompt", async (req, res) => {
-  const { message } = req.body;
+  const { message, context, framework } = req.body as {
+    message: string;
+    context?: { role: string; content: string }[];
+    framework?: { webapp?: string; service?: string };
+  };
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+
+  let contextBlock = "";
+  if (context && context.length > 0) {
+    const summary = context
+      .map((m) => `[${m.role}]: ${m.content.slice(0, 300)}`)
+      .join("\n");
+    contextBlock = `\n\nThe user is working on an existing project. Here is recent conversation context:\n<conversation_context>\n${summary}\n</conversation_context>\nUse this context to make the enhanced prompt more relevant to what the user is building.`;
+  }
+
+  const stackName = framework?.service === "node"
+    ? "Node.js"
+    : `${(framework?.webapp ?? "react").charAt(0).toUpperCase() + (framework?.webapp ?? "react").slice(1)} + Vite + Tailwind CSS`;
+  const designContext = framework?.service === "node"
+    ? ""
+    : `\nThe user's selected tech stack is: ${stackName}. ${getBaseDesignPrompt(framework?.webapp ?? "react")}`;
+
+  const enhanceInstructions = `\n\nIMPORTANT: Right now you are acting as a PROMPT ENHANCER. The user will give you a short prompt. Your job is to return a slightly improved version of it — more specific and clear, but still concise (2-4 sentences max). Focus ONLY on functionality, features, and UX — do NOT mention any frameworks, libraries, or technologies since the tech stack is already chosen by the user. Do NOT generate code, artifacts, XML, or markdown. Return ONLY the enhanced prompt text.${designContext}${contextBlock}`;
 
   try {
     const stream = await openai.chat.completions.create({
       model: MODEL,
       messages: [
         {
+          role: "system",
+          content: getSystemPrompt() + enhanceInstructions,
+        },
+        {
           role: "user",
-          content: `Enhance this prompt to be more specific and detailed. Create a single artifact with the improved prompt and nothing else.
-
-                <original_prompt>
-                ${message}
-                </original_prompt>`,
+          content: message,
         },
       ],
-      max_tokens: 600,
+      max_tokens: 300,
       stream: true,
     });
 
