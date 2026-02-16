@@ -27,7 +27,7 @@ import {
   initWorkspace,
   submitFollowUp,
 } from '@/store/workspaceSlice';
-import { appendChatItems, clearChat } from '@/store/chatSlice';
+import { appendChatItems, appendUserMessage, clearChat } from '@/store/chatSlice';
 import { getArtifactTitle, parseXml } from '@/steps';
 import { applyStepsToFiles } from '@/utility/file-tree';
 import { getNarrativeFromAssistantContent, stripModificationsBlock } from '@/utility/chat-content';
@@ -83,7 +83,11 @@ export default function Workspace() {
   }, [prompt, framework]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmitFollowUp = useCallback(async () => {
-    const result = await dispatch(submitFollowUp({ filesAtLastLlmRef: filesAtLastLlmRef.current }));
+    const message = userPrompt.trim();
+    if (!message) return;
+    dispatch(appendUserMessage(message));
+    dispatch(setUserPrompt(''));
+    const result = await dispatch(submitFollowUp({ filesAtLastLlmRef: filesAtLastLlmRef.current, userPrompt: message }));
     if (submitFollowUp.fulfilled.match(result)) {
       const { xml, allMessages } = result.payload;
       const newSteps = parseXml(xml);
@@ -91,15 +95,13 @@ export default function Workspace() {
       const label = getArtifactTitle(xml);
       const cp = createCheckpoint(newFiles, allMessages, label, checkpoints.length + 1);
       const prevLen = checkpoints.length === 0 ? 0 : checkpoints[checkpoints.length - 1].llmMessages.length;
-      const newMessages = allMessages.slice(prevLen).map(m =>
-        m.role === 'assistant'
-          ? { ...m, content: getNarrativeFromAssistantContent(m.content) }
-          : { ...m, content: stripModificationsBlock(m.content) }
-      );
+      const newMessages = allMessages.slice(prevLen)
+        .filter(m => m.role === 'assistant')
+        .map(m => ({ ...m, content: getNarrativeFromAssistantContent(m.content) }));
       dispatch(appendChatItems({ messages: newMessages, checkpointId: cp.id }));
       updateFilesAtLastLlmRef(newFiles);
     }
-  }, [dispatch, filesAtLastLlmRef, files, checkpoints, createCheckpoint, updateFilesAtLastLlmRef]);
+  }, [dispatch, userPrompt, filesAtLastLlmRef, files, checkpoints, createCheckpoint, updateFilesAtLastLlmRef]);
 
   const llmMessages = useAppSelector(selectLlmMessages);
 

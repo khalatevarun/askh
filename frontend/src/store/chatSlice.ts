@@ -32,6 +32,9 @@ const chatSlice = createSlice({
       }
       state.items.push({ type: 'checkpoint', checkpointId: action.payload.checkpointId });
     },
+    appendUserMessage(state, action: PayloadAction<string>) {
+      state.items.push({ type: 'user', content: action.payload });
+    },
     clearChat(state) {
       state.items = [];
     },
@@ -46,6 +49,6 @@ const chatSlice = createSlice({
   },
 });
 
-export const { appendChatItems, clearChat, truncateChatAfterCheckpoint } = chatSlice.actions;
+export const { appendChatItems, appendUserMessage, clearChat, truncateChatAfterCheckpoint } = chatSlice.actions;
 
 export default chatSlice.reducer;
