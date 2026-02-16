@@ -10,7 +10,7 @@ export const selectSteps = (state: RootState) => state.workspace.steps;
 export const selectLlmMessages = (state: RootState) => state.workspace.llmMessages;
 export const selectSelectedFile = (state: RootState) => state.workspace.selectedFile;
 export const selectUserPrompt = (state: RootState) => state.workspace.userPrompt;
-export const selectCurrentStepId = (state: RootState) => state.workspace.currentStepId;
+
 export const selectActiveOperations = (state: RootState) => state.workspace.activeOperations;
 export const selectGlobalError = (state: RootState) => state.workspace.globalError;
 export const selectIsEnhancingPrompt = (state: RootState) => state.workspace.isEnhancingPrompt;

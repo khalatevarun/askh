@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Content from '@/components/Workspace/Content';
 import { ChatTimeline } from '@/components/ChatTimeline';
 import { useWebContainer } from '@/hooks/useWebContainer';
-import { useBlobStore } from '@/hooks/useBlobStore';
+import { useCheckpoint } from '@/hooks/useCheckpoint';
 import { handleDownload } from '@/utility/helper';
 import { BACKEND_URL } from '@/utility/api';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,7 @@ export default function Workspace() {
     restoreFromCheckpoint,
     filesAtLastLlmRef,
     updateFilesAtLastLlmRef,
-  } = useBlobStore();
+  } = useCheckpoint();
 
   // Init workspace on mount
   useEffect(() => {

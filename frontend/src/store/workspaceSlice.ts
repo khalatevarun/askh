@@ -18,7 +18,7 @@ export interface WorkspaceState {
   llmMessages: Array<{ role: 'user' | 'assistant'; content: string }>;
   selectedFile: { name: string; content: string; path?: string } | null;
   userPrompt: string;
-  currentStepId: string;
+
   initialPrompt: string;
   framework: Framework;
   activeOperations: Record<string, { id: string; message: string }>;
@@ -35,7 +35,7 @@ const initialState: WorkspaceState = {
   llmMessages: [],
   selectedFile: null,
   userPrompt: '',
-  currentStepId: '',
+
   initialPrompt: '',
   framework: DEFAULT_FRAMEWORK,
   activeOperations: {},
@@ -152,9 +152,6 @@ const workspaceSlice = createSlice({
     setUserPrompt(state, action: PayloadAction<string>) {
       state.userPrompt = action.payload;
     },
-    setCurrentStepId(state, action: PayloadAction<string>) {
-      state.currentStepId = action.payload;
-    },
     restoreCheckpoint(state, action: PayloadAction<{
       files: FileItem[];
       steps: Step[];
@@ -238,7 +235,7 @@ export const {
   editFile,
   setSelectedFile,
   setUserPrompt,
-  setCurrentStepId,
+
   restoreCheckpoint,
   startOperation,
   updateOperationMessage,

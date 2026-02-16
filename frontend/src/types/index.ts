@@ -44,13 +44,13 @@ export interface ChatMessage {
   content: string;
 }
 
-/** Checkpoint: content-addressable snapshot (tree = path → contentHash). */
+/** Checkpoint: snapshot of workspace state (tree = path → content). */
 export interface Checkpoint {
   id: string;
   version: number;
   label: string;
   createdAt: number;
-  /** path → content hash (resolve via blob store). */
+  /** path → file content. */
   tree: Record<string, string>;
   steps: Step[];
   llmMessages: { role: 'user' | 'assistant'; content: string }[];
