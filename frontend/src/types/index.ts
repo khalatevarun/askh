@@ -16,11 +16,6 @@ export enum StepType {
     path?: string;
   }
   
-  export interface Project {
-    prompt: string;
-    steps: Step[];
-  }
-  
   export interface FileItem {
     name: string;
     type: 'file' | 'folder';
@@ -29,15 +24,12 @@ export enum StepType {
     path: string;
   }
   
-  export interface FileViewerProps {
-    file: FileItem | null;
-    onClose: () => void;
-  }
-
 export interface Framework {
   webapp: string;
   service: string;
 }
+
+export const DEFAULT_FRAMEWORK: Framework = { webapp: 'react', service: '' };
 
 export interface ChatMessage {
   role: string;

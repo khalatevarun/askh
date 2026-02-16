@@ -5,10 +5,10 @@ import { ChatTimeline } from '@/components/ChatTimeline';
 import { useWebContainer } from '@/hooks/useWebContainer';
 import { useCheckpoint } from '@/hooks/useCheckpoint';
 import { handleDownload } from '@/utility/helper';
-import { BACKEND_URL } from '@/utility/api';
+import { BACKEND_URL, readSseStream } from '@/utility/api';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import type { Framework } from '@/types';
+import { DEFAULT_FRAMEWORK, type Framework } from '@/types';
 import { ArrowUp, Sparkles } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
@@ -32,7 +32,6 @@ import { getArtifactTitle, parseXml } from '@/steps';
 import { applyStepsToFiles } from '@/utility/file-tree';
 import { getNarrativeFromAssistantContent, stripModificationsBlock } from '@/utility/chat-content';
 
-const DEFAULT_FRAMEWORK: Framework = { webapp: 'react', service: '' };
 
 export default function Workspace() {
   const location = useLocation();
@@ -120,31 +119,11 @@ export default function Workspace() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, framework, context: context.length > 0 ? context : undefined }),
       });
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No reader available');
-      const decoder = new TextDecoder();
       let enhanced = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(5);
-            if (data === '[DONE]') break;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.text) {
-                enhanced += parsed.text;
-                dispatch(setUserPrompt(enhanced));
-              }
-            } catch {
-              // ignore parse errors
-            }
-          }
-        }
-      }
+      await readSseStream(response, (text) => {
+        enhanced += text;
+        dispatch(setUserPrompt(enhanced));
+      });
     } catch (error) {
       console.error('Error enhancing prompt:', error);
     } finally {

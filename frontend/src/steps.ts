@@ -48,8 +48,6 @@ export function parseXml(response: string): Step[] {
   
     const xmlContent = xmlMatch[1];
     const steps: Step[] = [];
-    let stepId = 1; // todo - use uuid for unique id generation
-  
     // Extract artifact title
     const artifactTitle = getArtifactTitle(response);
   
