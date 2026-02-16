@@ -192,18 +192,6 @@ export function didPackageJsonChange(
 }
 
 /**
- * Simple non-crypto hash for content-addressable storage (in-memory).
- * Consistent: same content always yields the same hash.
- */
-export function contentHash(content: string): string {
-  let h = 5381;
-  for (let i = 0; i < content.length; i++) {
-    h = ((h << 5) + h) ^ content.charCodeAt(i);
-  }
-  return (h >>> 0).toString(36);
-}
-
-/**
  * Build a nested FileItem tree from a flat list of path + content.
  * Used when restoring a checkpoint (resolve tree hashes to content, then call this).
  */

@@ -8,3 +8,9 @@ export function getNarrativeFromAssistantContent(content: string): string {
   const withoutArtifacts = content.replace(BOLT_ARTIFACT_REGEX, '').trim();
   return withoutArtifacts || 'Generated artifact';
 }
+
+const BOLT_MODIFICATIONS_REGEX = /<bolt_file_modifications>[\s\S]*?<\/bolt_file_modifications>/gi;
+
+export function stripModificationsBlock(content: string): string {
+  return content.replace(BOLT_MODIFICATIONS_REGEX, '').trim();
+}

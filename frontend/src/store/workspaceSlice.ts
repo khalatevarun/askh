@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import type { FileItem, Step, Framework } from '../types';
+import type { FileItem, Framework } from '../types';
 import { parseXml } from '../steps';
 import {
   applyStepsToFiles,
@@ -14,12 +14,10 @@ export type WorkspacePhase = 'idle' | 'building' | 'ready';
 export interface WorkspaceState {
   phase: WorkspacePhase;
   files: FileItem[];
-  steps: Step[];
   llmMessages: Array<{ role: 'user' | 'assistant'; content: string }>;
   selectedFile: { name: string; content: string; path?: string } | null;
   userPrompt: string;
-  currentStepId: string;
-  initialPrompt: string;
+
   framework: Framework;
   activeOperations: Record<string, { id: string; message: string }>;
   globalError: string | null;
@@ -31,12 +29,10 @@ const DEFAULT_FRAMEWORK: Framework = { webapp: 'react', service: '' };
 const initialState: WorkspaceState = {
   phase: 'idle',
   files: [],
-  steps: [],
   llmMessages: [],
   selectedFile: null,
   userPrompt: '',
-  currentStepId: '',
-  initialPrompt: '',
+
   framework: DEFAULT_FRAMEWORK,
   activeOperations: {},
   globalError: null,
@@ -121,18 +117,13 @@ const workspaceSlice = createSlice({
   name: 'workspace',
   initialState,
   reducers: {
-    setWorkspaceParams(state, action: PayloadAction<{ prompt: string; framework: Framework }>) {
-      state.initialPrompt = action.payload.prompt;
+    setWorkspaceParams(state, action: PayloadAction<{ framework: Framework }>) {
       state.framework = action.payload.framework;
     },
     templateLoaded(state, action: PayloadAction<{ xml: string }>) {
       const newSteps = parseXml(action.payload.xml);
       const { files } = applyStepsToFiles(state.files, newSteps);
       state.files = files;
-      state.steps = [
-        ...state.steps,
-        ...newSteps.map(s => ({ ...s, status: 'completed' as const })),
-      ];
       state.phase = 'building';
     },
     editFile(state, action: PayloadAction<{ path: string; content: string }>) {
@@ -152,16 +143,11 @@ const workspaceSlice = createSlice({
     setUserPrompt(state, action: PayloadAction<string>) {
       state.userPrompt = action.payload;
     },
-    setCurrentStepId(state, action: PayloadAction<string>) {
-      state.currentStepId = action.payload;
-    },
     restoreCheckpoint(state, action: PayloadAction<{
       files: FileItem[];
-      steps: Step[];
       llmMessages: Array<{ role: 'user' | 'assistant'; content: string }>;
     }>) {
       state.files = action.payload.files;
-      state.steps = action.payload.steps;
       state.llmMessages = action.payload.llmMessages;
       state.phase = 'ready';
       state.selectedFile = null;
@@ -194,10 +180,6 @@ const workspaceSlice = createSlice({
         const newSteps = parseXml(action.payload.chatXml);
         const { files } = applyStepsToFiles(state.files, newSteps);
         state.files = files;
-        state.steps = [
-          ...state.steps,
-          ...newSteps.map(s => ({ ...s, status: 'completed' as const })),
-        ];
         state.llmMessages = action.payload.allMessages;
         state.phase = 'ready';
         delete state.activeOperations['workspace:init'];
@@ -215,10 +197,6 @@ const workspaceSlice = createSlice({
         const newSteps = parseXml(action.payload.xml);
         const { files } = applyStepsToFiles(state.files, newSteps);
         state.files = files;
-        state.steps = [
-          ...state.steps,
-          ...newSteps.map(s => ({ ...s, status: 'completed' as const })),
-        ];
         state.llmMessages = action.payload.allMessages;
         state.phase = 'ready';
         state.userPrompt = '';
@@ -238,7 +216,7 @@ export const {
   editFile,
   setSelectedFile,
   setUserPrompt,
-  setCurrentStepId,
+
   restoreCheckpoint,
   startOperation,
   updateOperationMessage,

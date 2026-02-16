@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Content from '@/components/Workspace/Content';
 import { ChatTimeline } from '@/components/ChatTimeline';
 import { useWebContainer } from '@/hooks/useWebContainer';
-import { useBlobStore } from '@/hooks/useBlobStore';
+import { useCheckpoint } from '@/hooks/useCheckpoint';
 import { handleDownload } from '@/utility/helper';
 import { BACKEND_URL } from '@/utility/api';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ import {
 import { appendChatItems, clearChat } from '@/store/chatSlice';
 import { getArtifactTitle, parseXml } from '@/steps';
 import { applyStepsToFiles } from '@/utility/file-tree';
+import { getNarrativeFromAssistantContent, stripModificationsBlock } from '@/utility/chat-content';
 
 const DEFAULT_FRAMEWORK: Framework = { webapp: 'react', service: '' };
 
@@ -41,7 +42,6 @@ export default function Workspace() {
 
   const dispatch = useAppDispatch();
   const files = useAppSelector(selectFiles);
-  const steps = useAppSelector((state) => state.workspace.steps);
   const userPrompt = useAppSelector(selectUserPrompt);
   const checkpoints = useAppSelector(selectCheckpoints);
   const isFollowUpDisabled = useAppSelector(selectIsFollowUpDisabled);
@@ -53,11 +53,11 @@ export default function Workspace() {
     restoreFromCheckpoint,
     filesAtLastLlmRef,
     updateFilesAtLastLlmRef,
-  } = useBlobStore();
+  } = useCheckpoint();
 
   // Init workspace on mount
   useEffect(() => {
-    dispatch(setWorkspaceParams({ prompt, framework }));
+    dispatch(setWorkspaceParams({ framework }));
     dispatch(clearChat());
     dispatch(initWorkspace({ prompt, framework })).then((result) => {
       if (initWorkspace.fulfilled.match(result)) {
@@ -67,11 +67,14 @@ export default function Workspace() {
         const { files: filesAfterTemplate } = applyStepsToFiles([], templateSteps);
         const newSteps = parseXml(chatXml);
         const { files: newFiles } = applyStepsToFiles(filesAfterTemplate, newSteps);
-        const stepsAfterTemplate = templateSteps.map(s => ({ ...s, status: 'completed' as const }));
-        const allSteps = [...stepsAfterTemplate, ...newSteps.map(s => ({ ...s, status: 'completed' as const }))];
         const label = getArtifactTitle(chatXml);
-        const cp = createCheckpoint(newFiles, allSteps, allMessages, label, 1);
-        dispatch(appendChatItems({ messages: allMessages.slice(2), checkpointId: cp.id }));
+        const cp = createCheckpoint(newFiles, allMessages, label, 1);
+        const cleanMessages = allMessages.slice(2).map(m =>
+          m.role === 'assistant'
+            ? { ...m, content: getNarrativeFromAssistantContent(m.content) }
+            : { ...m, content: stripModificationsBlock(m.content) }
+        );
+        dispatch(appendChatItems({ messages: cleanMessages, checkpointId: cp.id }));
         updateFilesAtLastLlmRef(newFiles);
       }
     });
@@ -83,16 +86,18 @@ export default function Workspace() {
       const { xml, allMessages } = result.payload;
       const newSteps = parseXml(xml);
       const { files: newFiles } = applyStepsToFiles(files, newSteps);
-      const newStepsWithStatus = newSteps.map(s => ({ ...s, status: 'completed' as const }));
-      const allSteps = [...steps, ...newStepsWithStatus];
       const label = getArtifactTitle(xml);
-      const cp = createCheckpoint(newFiles, allSteps, allMessages, label, checkpoints.length + 1);
+      const cp = createCheckpoint(newFiles, allMessages, label, checkpoints.length + 1);
       const prevLen = checkpoints.length === 0 ? 0 : checkpoints[checkpoints.length - 1].llmMessages.length;
-      const newMessages = allMessages.slice(prevLen);
+      const newMessages = allMessages.slice(prevLen).map(m =>
+        m.role === 'assistant'
+          ? { ...m, content: getNarrativeFromAssistantContent(m.content) }
+          : { ...m, content: stripModificationsBlock(m.content) }
+      );
       dispatch(appendChatItems({ messages: newMessages, checkpointId: cp.id }));
       updateFilesAtLastLlmRef(newFiles);
     }
-  }, [dispatch, filesAtLastLlmRef, files, steps, checkpoints, createCheckpoint, updateFilesAtLastLlmRef]);
+  }, [dispatch, filesAtLastLlmRef, files, checkpoints, createCheckpoint, updateFilesAtLastLlmRef]);
 
   const enhancePrompt = useCallback(async () => {
     const message = userPrompt.trim();
