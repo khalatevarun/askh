@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import type { FileItem, Step, Checkpoint } from '../types';
+import type { FileItem, Checkpoint } from '../types';
 import {
   flattenFiles,
   buildFileTreeFromFlatList,
@@ -19,7 +19,6 @@ export function useCheckpoint() {
   const createCheckpoint = useCallback(
     (
       files: FileItem[],
-      steps: Step[],
       llmMessages: Array<{ role: 'user' | 'assistant'; content: string }>,
       label: string,
       version: number
@@ -35,7 +34,6 @@ export function useCheckpoint() {
         label,
         createdAt: Date.now(),
         tree,
-        steps: [...steps],
         llmMessages: [...llmMessages],
       };
       dispatch(addCheckpoint(cp));
@@ -55,7 +53,6 @@ export function useCheckpoint() {
       const files = buildFileTreeFromFlatList(flat);
       dispatch(restoreCheckpoint({
         files,
-        steps: cp.steps,
         llmMessages: cp.llmMessages,
       }));
       dispatch(setSelectedFile(null));

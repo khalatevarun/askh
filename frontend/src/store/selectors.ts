@@ -6,7 +6,6 @@ const selectPreview = (state: RootState) => state.preview;
 
 export const selectPhase = (state: RootState) => state.workspace.phase;
 export const selectFiles = (state: RootState) => state.workspace.files;
-export const selectSteps = (state: RootState) => state.workspace.steps;
 export const selectLlmMessages = (state: RootState) => state.workspace.llmMessages;
 export const selectSelectedFile = (state: RootState) => state.workspace.selectedFile;
 export const selectUserPrompt = (state: RootState) => state.workspace.userPrompt;

@@ -52,6 +52,5 @@ export interface Checkpoint {
   createdAt: number;
   /** path → file content. */
   tree: Record<string, string>;
-  steps: Step[];
   llmMessages: { role: 'user' | 'assistant'; content: string }[];
 }
