@@ -52,6 +52,7 @@ export default function Workspace() {
   const {
     createCheckpoint,
     restoreFromCheckpoint,
+    revertFromCheckpoint,
     filesAtLastLlmRef,
     updateFilesAtLastLlmRef,
   } = useCheckpoint();
@@ -156,7 +157,8 @@ export default function Workspace() {
         <div className="flex-1 min-h-0 overflow-y-auto">
           <ChatTimeline
             initialPrompt={prompt}
-            onRestore={restoreFromCheckpoint}
+            onPreview={restoreFromCheckpoint}
+            onRevert={revertFromCheckpoint}
             isWaitingForResponse={isBuildingApp}
           />
         </div>

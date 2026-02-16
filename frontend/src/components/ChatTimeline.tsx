@@ -7,7 +7,8 @@ import { CheckpointCard } from '@/components/CheckpointCard';
 
 interface ChatTimelineProps {
   initialPrompt?: string;
-  onRestore: (id: string) => void;
+  onPreview: (id: string) => void;
+  onRevert: (id: string) => void;
   isWaitingForResponse?: boolean;
 }
 
@@ -44,7 +45,7 @@ function ThinkingBubble() {
   );
 }
 
-export function ChatTimeline({ initialPrompt, onRestore, isWaitingForResponse = false }: ChatTimelineProps) {
+export function ChatTimeline({ initialPrompt, onPreview, onRevert, isWaitingForResponse = false }: ChatTimelineProps) {
   const items = useAppSelector(selectChatItems);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -79,7 +80,7 @@ export function ChatTimeline({ initialPrompt, onRestore, isWaitingForResponse = 
           return (
             <div key={`${item.checkpointId}-${index}`} className="flex justify-start">
               <div className="w-full max-w-[95%]">
-                <CheckpointCard checkpointId={item.checkpointId} onRestore={onRestore} />
+                <CheckpointCard checkpointId={item.checkpointId} onPreview={onPreview} onRevert={onRevert} />
               </div>
             </div>
           );

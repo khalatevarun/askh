@@ -7,7 +7,8 @@ import {
 } from '../utility/file-tree';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectCheckpoints } from '../store/selectors';
-import { addCheckpoint } from '../store/checkpointSlice';
+import { addCheckpoint, revertToCheckpoint as revertCheckpointAction } from '../store/checkpointSlice';
+import { truncateChatAfterCheckpoint } from '../store/chatSlice';
 import { restoreCheckpoint, setSelectedFile } from '../store/workspaceSlice';
 
 export function useCheckpoint() {
@@ -61,6 +62,27 @@ export function useCheckpoint() {
     [checkpoints, dispatch]
   );
 
+  const revertFromCheckpoint = useCallback(
+    (id: string) => {
+      const cp = checkpoints.find(c => c.id === id);
+      if (!cp) return;
+      const flat = Object.entries(cp.tree).map(([path, content]) => ({
+        path,
+        content,
+      }));
+      const files = buildFileTreeFromFlatList(flat);
+      dispatch(restoreCheckpoint({
+        files,
+        llmMessages: cp.llmMessages,
+      }));
+      dispatch(setSelectedFile(null));
+      dispatch(revertCheckpointAction(id));
+      dispatch(truncateChatAfterCheckpoint(id));
+      filesAtLastLlmRef.current = flat;
+    },
+    [checkpoints, dispatch]
+  );
+
   const updateFilesAtLastLlmRef = useCallback(
     (files: FileItem[]) => {
       filesAtLastLlmRef.current = flattenFiles(files);
@@ -72,6 +94,7 @@ export function useCheckpoint() {
     filesAtLastLlmRef,
     createCheckpoint,
     restoreFromCheckpoint,
+    revertFromCheckpoint,
     updateFilesAtLastLlmRef,
   };
 }
