@@ -170,7 +170,7 @@ export default function Workspace() {
               e.preventDefault();
               handleSubmitFollowUp();
             }}
-            className="flex flex-col rounded-xl border border-border bg-muted/30 overflow-hidden focus-within:ring-1 focus-within:ring-ring"
+            className="flex flex-col rounded-2xl border border-white/20 bg-[hsl(var(--hero-via)_/_0.4)] shadow-lg overflow-hidden focus-within:bg-[hsl(var(--hero-via)_/_0.5)] transition-colors"
           >
             <Textarea
               value={userPrompt}

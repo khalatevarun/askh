@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { MoreVertical, Eye, RotateCcw, X } from 'lucide-react';
+import { fadeSlideUp } from '@/utility/motion';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -43,6 +45,7 @@ export function CheckpointCard({ checkpointId, onPreview, onRevert }: Checkpoint
 
   return (
     <>
+      <motion.div variants={fadeSlideUp} initial="initial" animate="animate" whileHover={{ scale: 1.02 }} transition={{ type: 'tween', duration: 0.15 }}>
       <Card className="group rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors">
         <div className="flex items-center gap-2 p-2 min-w-0">
           <button
@@ -74,6 +77,7 @@ export function CheckpointCard({ checkpointId, onPreview, onRevert }: Checkpoint
           </DropdownMenu>
         </div>
       </Card>
+      </motion.div>
 
       <AlertDialog open={showRevertConfirm} onOpenChange={setShowRevertConfirm}>
         <AlertDialogContent className="max-w-md">

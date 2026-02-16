@@ -1,8 +1,10 @@
+import { motion, AnimatePresence } from 'framer-motion';
 import type { WebContainer } from '@webcontainer/api';
 import { usePreviewManager } from '../../hooks/usePreviewManager';
 import { useAppSelector } from '@/store/hooks';
 import { selectPreviewState } from '@/store/selectors';
 import type { PreviewStatus } from '@/store/previewSlice';
+import { fadeIn } from '@/utility/motion';
 
 interface PreviewProps {
   webContainer: WebContainer | null;
@@ -38,23 +40,37 @@ export function Preview({ webContainer }: PreviewProps) {
 
   return (
     <div className="w-full h-full flex items-center justify-center">
-      <div className="text-center">
-        <p className="mb-2">{previewState.error ?? display.title}</p>
-        {display.subtitle && (
-          <p className="text-sm text-gray-400 mb-4">{display.subtitle}</p>
-        )}
-        {showSpinner && (
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto" />
-        )}
-        {showStartButton && (
-          <button
-            onClick={startManually}
-            className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            {previewState.status === 'error' ? 'Retry' : 'Start Preview'}
-          </button>
-        )}
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={previewState.status}
+          variants={fadeIn}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="text-center"
+        >
+          <p className="mb-2">{previewState.error ?? display.title}</p>
+          {display.subtitle && (
+            <p className="text-sm text-gray-400 mb-4">{display.subtitle}</p>
+          )}
+          {showSpinner && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"
+            />
+          )}
+          {showStartButton && (
+            <button
+              onClick={startManually}
+              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              {previewState.status === 'error' ? 'Retry' : 'Start Preview'}
+            </button>
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
