@@ -35,9 +35,17 @@ const chatSlice = createSlice({
     clearChat(state) {
       state.items = [];
     },
+    truncateChatAfterCheckpoint(state, action: PayloadAction<string>) {
+      const idx = state.items.findLastIndex(
+        item => item.type === 'checkpoint' && item.checkpointId === action.payload
+      );
+      if (idx !== -1) {
+        state.items = state.items.slice(0, idx + 1);
+      }
+    },
   },
 });
 
-export const { appendChatItems, clearChat } = chatSlice.actions;
+export const { appendChatItems, clearChat, truncateChatAfterCheckpoint } = chatSlice.actions;
 
 export default chatSlice.reducer;

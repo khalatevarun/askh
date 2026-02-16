@@ -19,9 +19,15 @@ const checkpointSlice = createSlice({
     clearCheckpoints(state) {
       state.checkpoints = [];
     },
+    revertToCheckpoint(state, action: PayloadAction<string>) {
+      const idx = state.checkpoints.findIndex(c => c.id === action.payload);
+      if (idx !== -1) {
+        state.checkpoints = state.checkpoints.slice(0, idx + 1);
+      }
+    },
   },
 });
 
-export const { addCheckpoint, clearCheckpoints } = checkpointSlice.actions;
+export const { addCheckpoint, clearCheckpoints, revertToCheckpoint } = checkpointSlice.actions;
 
 export default checkpointSlice.reducer;
