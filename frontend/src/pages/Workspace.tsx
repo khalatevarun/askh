@@ -2,6 +2,8 @@ import { useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import Content from '@/components/Workspace/Content';
 import { ChatTimeline } from '@/components/ChatTimeline';
+import { ErrorBox } from '@/components/ErrorBox';
+import { ConnectionErrorBanner } from '@/components/ConnectionErrorBanner';
 import { useWebContainer } from '@/hooks/useWebContainer';
 import { useCheckpoint } from '@/hooks/useCheckpoint';
 import { handleDownload } from '@/utility/helper';
@@ -19,11 +21,13 @@ import {
   selectIsEnhancingPrompt,
   selectIsBuildingApp,
   selectLlmMessages,
+  selectGlobalError,
 } from '@/store/selectors';
 import {
   setWorkspaceParams,
   setUserPrompt,
   setIsEnhancingPrompt,
+  setGlobalError,
   initWorkspace,
   submitFollowUp,
 } from '@/store/workspaceSlice';
@@ -47,6 +51,7 @@ export default function Workspace() {
   const isFollowUpDisabled = useAppSelector(selectIsFollowUpDisabled);
   const isEnhancing = useAppSelector(selectIsEnhancingPrompt);
   const isBuildingApp = useAppSelector(selectIsBuildingApp);
+  const globalError = useAppSelector(selectGlobalError);
 
   const {
     createCheckpoint,
@@ -81,8 +86,8 @@ export default function Workspace() {
     });
   }, [prompt, framework]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSubmitFollowUp = useCallback(async () => {
-    const message = userPrompt.trim();
+  const handleSubmitFollowUp = useCallback(async (overridePrompt?: string) => {
+    const message = overridePrompt ?? userPrompt.trim();
     if (!message) return;
     dispatch(appendUserMessage(message));
     dispatch(setUserPrompt(''));
@@ -101,6 +106,34 @@ export default function Workspace() {
       updateFilesAtLastLlmRef(newFiles);
     }
   }, [dispatch, userPrompt, filesAtLastLlmRef, files, checkpoints, createCheckpoint, updateFilesAtLastLlmRef]);
+
+  const handleAskToFix = useCallback((errorDetail: string) => {
+    handleSubmitFollowUp(
+      `The generated code has an error:\n\n\`\`\`\n${errorDetail}\n\`\`\`\n\nPlease fix this error.`
+    );
+  }, [handleSubmitFollowUp]);
+
+  const handleTryAgainConnection = useCallback(() => {
+    dispatch(setGlobalError(null));
+    dispatch(initWorkspace({ prompt, framework })).then((result) => {
+      if (initWorkspace.fulfilled.match(result)) {
+        const { uiXml, chatXml, allMessages } = result.payload;
+        const templateSteps = parseXml(uiXml);
+        const { files: filesAfterTemplate } = applyStepsToFiles([], templateSteps);
+        const newSteps = parseXml(chatXml);
+        const { files: newFiles } = applyStepsToFiles(filesAfterTemplate, newSteps);
+        const label = getArtifactTitle(chatXml);
+        const cp = createCheckpoint(newFiles, allMessages, label, 1);
+        const cleanMessages = allMessages.slice(2).map(m =>
+          m.role === 'assistant'
+            ? { ...m, content: getNarrativeFromAssistantContent(m.content) }
+            : { ...m, content: stripModificationsBlock(m.content) }
+        );
+        dispatch(appendChatItems({ messages: cleanMessages, checkpointId: cp.id }));
+        updateFilesAtLastLlmRef(newFiles);
+      }
+    });
+  }, [dispatch, prompt, framework, createCheckpoint, updateFilesAtLastLlmRef]);
 
   const llmMessages = useAppSelector(selectLlmMessages);
 
@@ -143,7 +176,16 @@ export default function Workspace() {
             isWaitingForResponse={isBuildingApp}
           />
         </div>
+        {globalError && (
+          <ConnectionErrorBanner onTryAgain={handleTryAgainConnection} />
+        )}
+        {!globalError && <ErrorBox onAskToFix={handleAskToFix} />}
         <div className="mt-4 flex-shrink-0">
+          {globalError && (
+            <p className="text-xs text-muted-foreground mb-2">
+              Connection error. Use the button above to try again.
+            </p>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -154,7 +196,7 @@ export default function Workspace() {
             <Textarea
               value={userPrompt}
               onChange={(e) => dispatch(setUserPrompt(e.target.value))}
-              disabled={isBuildingApp || isEnhancing}
+              disabled={isBuildingApp || isEnhancing || !!globalError}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -169,7 +211,7 @@ export default function Workspace() {
               <button
                 type="button"
                 onClick={enhancePrompt}
-                disabled={isEnhancing || isBuildingApp || !userPrompt.trim()}
+                disabled={isEnhancing || isBuildingApp || !!globalError || !userPrompt.trim()}
                 className="p-2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-xl hover:bg-muted"
                 title="Enhance your prompt for better results"
               >
@@ -178,7 +220,7 @@ export default function Workspace() {
               <Button
                 type="submit"
                 size="icon"
-                disabled={isFollowUpDisabled}
+                disabled={isFollowUpDisabled || !!globalError}
                 className="h-9 w-9 rounded-xl shrink-0"
               >
                 <ArrowUp className="w-4 h-4" />

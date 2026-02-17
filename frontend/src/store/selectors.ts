@@ -67,3 +67,10 @@ export const selectIsSubmitDisabled = createSelector(
   [selectIsFollowUpDisabled, selectUserPrompt],
   (followUpDisabled, prompt) => followUpDisabled || !prompt.trim()
 );
+
+export const selectCurrentError = (state: RootState) => state.error.current;
+
+export const selectHasPreviewError = createSelector(
+  selectCurrentError,
+  (error) => error !== null
+);

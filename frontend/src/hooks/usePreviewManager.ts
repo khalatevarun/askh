@@ -9,6 +9,13 @@ import {
   onServerReady,
   waitForMount,
 } from '../utility/webcontainer-service';
+import {
+  parseViteError,
+  parseNpmError,
+  parseRuntimeError,
+  isViteSuccess,
+  makeDedupKey,
+} from '../utility/error-parsing';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectFiles, selectIsBuildingApp } from '../store/selectors';
 import {
@@ -20,6 +27,7 @@ import {
   startOperation,
   finishOperation,
 } from '../store/workspaceSlice';
+import { setAppError, clearAppError } from '../store/errorSlice';
 
 export interface UsePreviewManagerOptions {
   webContainer: WebContainer | null;
@@ -40,6 +48,7 @@ export function usePreviewManager({
   const prevFilesRef = useRef<Array<{ path: string; content: string }>>([]);
   const hasStartedOnce = useRef(false);
   const isStartingRef = useRef(false);
+  const installOutputRef = useRef('');
 
   const startPreview = useCallback(async () => {
     if (!webContainer || isStartingRef.current) return;
@@ -49,7 +58,9 @@ export function usePreviewManager({
       try {
         processRef.current.install?.kill();
         processRef.current.dev?.kill();
-      } catch (_e) { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       processRef.current = {};
 
       if (!hasStartedOnce.current) {
@@ -66,17 +77,62 @@ export function usePreviewManager({
       dispatch(setPreviewStatus('installing'));
       dispatch(startOperation({ id: 'preview:start', message: 'Installing dependencies...' }));
 
-      const installProcess = await runInstall(webContainer);
+      installOutputRef.current = '';
+      const installProcess = await runInstall(webContainer, (data) => {
+        installOutputRef.current += data;
+      });
       processRef.current.install = installProcess;
-      await installProcess.exit;
+      const installExitCode = await installProcess.exit;
+      const installErr = parseNpmError(installExitCode, installOutputRef.current);
+      if (installErr) {
+        dispatch(setPreviewError(installErr.detail));
+        dispatch(setAppError({
+          id: crypto.randomUUID(),
+          source: 'npm-install',
+          summary: installErr.summary,
+          detail: installErr.detail,
+          dedupKey: makeDedupKey('npm-install', installErr.summary),
+        }));
+        dispatch(finishOperation('preview:start'));
+        isStartingRef.current = false;
+        return;
+      }
 
       dispatch(setPreviewStatus('starting'));
       dispatch(startOperation({ id: 'preview:start', message: 'Starting dev server...' }));
-      const devProcess = await runDevServer(webContainer);
+      const devProcess = await runDevServer(webContainer, (data) => {
+        const viteErr = parseViteError(data);
+        if (viteErr) {
+          dispatch(setAppError({
+            id: crypto.randomUUID(),
+            source: 'vite-compilation',
+            summary: viteErr.summary,
+            detail: viteErr.detail,
+            filePath: viteErr.filePath,
+            dedupKey: makeDedupKey('vite-compilation', viteErr.summary),
+          }));
+        }
+        if (isViteSuccess(data)) {
+          dispatch(clearAppError());
+        }
+      });
       processRef.current.dev = devProcess;
+
+      devProcess.exit.then((code) => {
+        if (code !== 0) {
+          dispatch(setAppError({
+            id: crypto.randomUUID(),
+            source: 'dev-server-crash',
+            summary: `Dev server exited with code ${code}`,
+            detail: `The development server process exited unexpectedly with code ${code}.`,
+            dedupKey: makeDedupKey('dev-server-crash', `exit-${code}`),
+          }));
+        }
+      });
 
       onServerReady(webContainer, (readyUrl) => {
         dispatch(setPreviewRunning(readyUrl));
+        dispatch(clearAppError());
         dispatch(finishOperation('preview:start'));
         hasStartedOnce.current = true;
         prevFilesRef.current = flattenFiles(files);
@@ -140,11 +196,40 @@ export function usePreviewManager({
   }, [isBuildingApp, dispatch]);
 
   useEffect(() => {
+    if (!webContainer) return;
+
+    const unsubscribe = webContainer.on('preview-message', (message) => {
+      if (
+        message.type !== 'PREVIEW_UNCAUGHT_EXCEPTION' &&
+        message.type !== 'PREVIEW_UNHANDLED_REJECTION'
+      )
+        return;
+      const parsed = parseRuntimeError(
+        message.message,
+        message.stack
+      );
+      dispatch(
+        setAppError({
+          id: crypto.randomUUID(),
+          source: 'runtime',
+          summary: parsed.summary,
+          detail: parsed.detail,
+          dedupKey: makeDedupKey('runtime', parsed.summary),
+        })
+      );
+    });
+
+    return unsubscribe;
+  }, [webContainer, dispatch]);
+
+  useEffect(() => {
     return () => {
       try {
         processRef.current.install?.kill();
         processRef.current.dev?.kill();
-      } catch (_e) { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
   }, []);
 

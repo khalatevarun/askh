@@ -6,7 +6,7 @@ let bootPromise: Promise<WebContainer> | null = null;
 
 function getWebContainer(): Promise<WebContainer> {
   if (bootPromise) return bootPromise;
-  bootPromise = WebContainer.boot();
+  bootPromise = WebContainer.boot({ forwardPreviewErrors: 'exceptions-only' });
   return bootPromise;
 }
 
