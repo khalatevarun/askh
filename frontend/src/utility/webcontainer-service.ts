@@ -31,7 +31,7 @@ export async function syncChangedFiles(
       const dirPath = '/' + parts.slice(0, -1).join('/');
       try {
         await webContainer.fs.mkdir(dirPath, { recursive: true });
-      } catch (_e) {
+      } catch {
         // Directory likely already exists
       }
     }
@@ -45,7 +45,8 @@ export async function syncChangedFiles(
  * Pipes output to console. Resolves when install completes.
  */
 export async function runInstall(
-  webContainer: WebContainer
+  webContainer: WebContainer,
+  onOutput?: (data: string) => void
 ): Promise<WebContainerProcess> {
   const process = await webContainer.spawn('npm', ['install']);
 
@@ -53,6 +54,7 @@ export async function runInstall(
     new WritableStream({
       write(data) {
         console.log('[Install]', data);
+        onOutput?.(data);
       },
     })
   );
@@ -65,7 +67,8 @@ export async function runInstall(
  * Pipes output to console. Does NOT wait for exit (dev server runs indefinitely).
  */
 export async function runDevServer(
-  webContainer: WebContainer
+  webContainer: WebContainer,
+  onOutput?: (data: string) => void
 ): Promise<WebContainerProcess> {
   const process = await webContainer.spawn('npm', ['run', 'dev']);
 
@@ -73,6 +76,7 @@ export async function runDevServer(
     new WritableStream({
       write(data) {
         console.log('[Dev]', data);
+        onOutput?.(data);
       },
     })
   );
@@ -108,7 +112,7 @@ export async function waitForMount(
     try {
       await webContainer.fs.readFile('/package.json', 'utf-8');
       return true;
-    } catch (_e) {
+    } catch {
       await new Promise(resolve => setTimeout(resolve, intervalMs));
     }
   }

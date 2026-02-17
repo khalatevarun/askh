@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { WebContainer } from '@webcontainer/api';
 import { usePreviewManager } from '../../hooks/usePreviewManager';
 import { useAppSelector } from '@/store/hooks';
-import { selectPreviewState } from '@/store/selectors';
+import { selectPreviewState, selectGlobalError } from '@/store/selectors';
 import type { PreviewStatus } from '@/store/previewSlice';
 import { fadeIn } from '@/utility/motion';
 
@@ -23,6 +23,21 @@ const STATUS_DISPLAY: Record<Exclude<PreviewStatus, 'running'>, { title: string;
 export function Preview({ webContainer }: PreviewProps) {
   const { startManually } = usePreviewManager({ webContainer });
   const previewState = useAppSelector(selectPreviewState);
+  const globalError = useAppSelector(selectGlobalError);
+
+  // Connection/backend error — show message in sync with sidebar (no spinner)
+  if (globalError) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center max-w-sm">
+          <p className="mb-2">Something went wrong, please try again.</p>
+          <p className="text-sm text-muted-foreground">
+            Use the button in the sidebar to try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Preview is running — show iframe
   if (previewState.status === 'running' && previewState.url) {

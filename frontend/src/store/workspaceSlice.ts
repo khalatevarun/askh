@@ -5,6 +5,7 @@ import {
   applyStepsToFiles,
   updateFileByPath,
   flattenFiles,
+  getFileByPath,
 } from '../utility/file-tree';
 import { buildModificationsBlock } from '../utility/bolt-modifications';
 import { getChatResponse, getTemplate } from '../utility/api';
@@ -178,12 +179,17 @@ const workspaceSlice = createSlice({
         const newSteps = parseXml(action.payload.chatXml);
         const { files } = applyStepsToFiles(state.files, newSteps);
         state.files = files;
+        if (state.selectedFile?.path) {
+          const synced = getFileByPath(state.files, state.selectedFile.path);
+          state.selectedFile = synced ?? null;
+        }
         state.llmMessages = action.payload.allMessages;
         state.phase = 'ready';
         delete state.activeOperations['workspace:init'];
       })
       .addCase(initWorkspace.rejected, (state, action) => {
         state.globalError = action.error.message ?? 'Failed to initialize workspace';
+        state.phase = 'ready';
         delete state.activeOperations['workspace:init'];
       })
       .addCase(submitFollowUp.pending, (state) => {
@@ -195,6 +201,10 @@ const workspaceSlice = createSlice({
         const newSteps = parseXml(action.payload.xml);
         const { files } = applyStepsToFiles(state.files, newSteps);
         state.files = files;
+        if (state.selectedFile?.path) {
+          const synced = getFileByPath(state.files, state.selectedFile.path);
+          state.selectedFile = synced ?? null;
+        }
         state.llmMessages = action.payload.allMessages;
         state.phase = 'ready';
         delete state.activeOperations['workspace:followUp'];

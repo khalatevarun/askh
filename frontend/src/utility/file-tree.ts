@@ -24,6 +24,31 @@ export function flattenFiles(
 }
 
 /**
+ * Normalize a file path to match tree format: leading slash, no trailing slash.
+ */
+function normalizePath(path: string): string {
+  const raw = path.trim().replace(/\/+$/, '') || '/';
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+/**
+ * Get a single file by path from the file tree.
+ * Returns { name, content, path } for the editor/selectedFile shape, or null if not found.
+ * Path normalization is applied so paths with or without leading slash match.
+ */
+export function getFileByPath(
+  fileItems: FileItem[],
+  path: string
+): { name: string; content: string; path: string } | null {
+  const normalized = normalizePath(path);
+  const flat = flattenFiles(fileItems);
+  const entry = flat.find((e) => normalizePath(e.path) === normalized);
+  if (!entry) return null;
+  const name = entry.path.split('/').filter(Boolean).pop() ?? entry.path;
+  return { name, content: entry.content, path: entry.path };
+}
+
+/**
  * Build a WebContainer-compatible mount structure from a FileItem tree.
  */
 export function createMountStructure(files: FileItem[]): Record<string, any> {

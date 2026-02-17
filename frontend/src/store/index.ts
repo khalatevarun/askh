@@ -3,6 +3,7 @@ import workspaceReducer from './workspaceSlice';
 import checkpointReducer from './checkpointSlice';
 import previewReducer from './previewSlice';
 import chatReducer from './chatSlice';
+import errorReducer from './errorSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     checkpoint: checkpointReducer,
     preview: previewReducer,
     chat: chatReducer,
+    error: errorReducer,
   },
 });
 
