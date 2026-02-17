@@ -70,7 +70,7 @@ export function ErrorBox({ onAskToFix }: ErrorBoxProps) {
                 size="sm"
                 className="w-fit bg-primary text-primary-foreground hover:opacity-90"
               >
-                Ask to fix it
+                ASKH to fix it
               </Button>
             </div>
           </div>
