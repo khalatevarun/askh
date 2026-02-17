@@ -3,7 +3,8 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 export type ChatItem =
   | { type: 'user'; content: string }
   | { type: 'assistant'; content: string }
-  | { type: 'checkpoint'; checkpointId: string };
+  | { type: 'checkpoint'; checkpointId: string }
+  | { type: 'error'; message: string; context?: string; retryAction?: string };
 
 export interface ChatState {
   items: ChatItem[];
@@ -38,6 +39,12 @@ const chatSlice = createSlice({
     clearChat(state) {
       state.items = [];
     },
+    appendErrorItem(
+      state,
+      action: PayloadAction<{ message: string; context?: string; retryAction?: string }>
+    ) {
+      state.items.push({ type: 'error', ...action.payload });
+    },
     truncateChatAfterCheckpoint(state, action: PayloadAction<string>) {
       const idx = state.items.findLastIndex(
         item => item.type === 'checkpoint' && item.checkpointId === action.payload
@@ -49,6 +56,6 @@ const chatSlice = createSlice({
   },
 });
 
-export const { appendChatItems, appendUserMessage, clearChat, truncateChatAfterCheckpoint } = chatSlice.actions;
+export const { appendChatItems, appendUserMessage, appendErrorItem, clearChat, truncateChatAfterCheckpoint } = chatSlice.actions;
 
 export default chatSlice.reducer;

@@ -15,11 +15,21 @@ import {
   setPreviewStatus,
   setPreviewError,
   setPreviewRunning,
+  addError,
+  clearErrors,
 } from '../store/previewSlice';
 import {
   startOperation,
   finishOperation,
 } from '../store/workspaceSlice';
+import { appendErrorItem } from '../store/chatSlice';
+import {
+  parseDevServerOutput,
+  isCompilationSuccess,
+  parsePreviewMessage,
+  parseInstallResult,
+} from '../utility/error-parsing';
+import type { AppError } from '../types/errors';
 
 export interface UsePreviewManagerOptions {
   webContainer: WebContainer | null;
@@ -40,6 +50,31 @@ export function usePreviewManager({
   const prevFilesRef = useRef<Array<{ path: string; content: string }>>([]);
   const hasStartedOnce = useRef(false);
   const isStartingRef = useRef(false);
+  const installOutputRef = useRef('');
+  const isLlmChangeRef = useRef(false);
+  const prevIsBuildingRef = useRef(isBuildingApp);
+  const pendingLlmErrorsRef = useRef<AppError[]>([]);
+  const llmErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushLlmErrors = useCallback(() => {
+    if (pendingLlmErrorsRef.current.length === 0) return;
+    const allErrors = pendingLlmErrorsRef.current.map(e => e.detail).join('\n\n---\n\n');
+    pendingLlmErrorsRef.current = [];
+    dispatch(appendErrorItem({
+      message: 'Errors detected in generated code',
+      context: allErrors,
+      retryAction: 'fix-compilation',
+    }));
+    isLlmChangeRef.current = false;
+  }, [dispatch]);
+
+  const queueLlmError = useCallback((error: AppError) => {
+    if (!pendingLlmErrorsRef.current.some(e => e.id === error.id)) {
+      pendingLlmErrorsRef.current.push(error);
+    }
+    if (llmErrorTimerRef.current) clearTimeout(llmErrorTimerRef.current);
+    llmErrorTimerRef.current = setTimeout(() => flushLlmErrors(), 2000);
+  }, [flushLlmErrors]);
 
   const startPreview = useCallback(async () => {
     if (!webContainer || isStartingRef.current) return;
@@ -66,13 +101,40 @@ export function usePreviewManager({
       dispatch(setPreviewStatus('installing'));
       dispatch(startOperation({ id: 'preview:start', message: 'Installing dependencies...' }));
 
-      const installProcess = await runInstall(webContainer);
+      installOutputRef.current = '';
+      const installProcess = await runInstall(webContainer, (data) => {
+        installOutputRef.current += data;
+      });
       processRef.current.install = installProcess;
-      await installProcess.exit;
+      const installExitCode = await installProcess.exit;
+
+      const installError = parseInstallResult(installExitCode, installOutputRef.current);
+      if (installError) {
+        dispatch(setPreviewError(installError.detail));
+        dispatch(appendErrorItem({
+          message: 'Failed to install dependencies.',
+          context: installError.detail,
+          retryAction: 'fix-compilation',
+        }));
+        dispatch(finishOperation('preview:start'));
+        return;
+      }
 
       dispatch(setPreviewStatus('starting'));
       dispatch(startOperation({ id: 'preview:start', message: 'Starting dev server...' }));
-      const devProcess = await runDevServer(webContainer);
+      const devProcess = await runDevServer(webContainer, (data) => {
+        const error = parseDevServerOutput(data);
+        if (error) {
+          dispatch(addError(error));
+          if (isLlmChangeRef.current) {
+            queueLlmError(error);
+          }
+        }
+        if (isCompilationSuccess(data)) {
+          dispatch(clearErrors());
+          isLlmChangeRef.current = false;
+        }
+      });
       processRef.current.dev = devProcess;
 
       onServerReady(webContainer, (readyUrl) => {
@@ -89,7 +151,16 @@ export function usePreviewManager({
     } finally {
       isStartingRef.current = false;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webContainer, files, dispatch]);
+
+  // Track when isBuildingApp transitions from true → false (LLM finished generating)
+  useEffect(() => {
+    if (prevIsBuildingRef.current && !isBuildingApp) {
+      isLlmChangeRef.current = true;
+    }
+    prevIsBuildingRef.current = isBuildingApp;
+  }, [isBuildingApp]);
 
   useEffect(() => {
     if (!webContainer) return;
@@ -122,16 +193,43 @@ export function usePreviewManager({
       console.log('[PreviewManager] package.json changed, restarting...');
       syncChangedFiles(webContainer, changed)
         .then(() => startPreview())
-        .catch(err => console.error('[PreviewManager] Sync before restart failed:', err));
+        .catch(err => {
+          console.error('[PreviewManager] Sync before restart failed:', err);
+          dispatch(setPreviewError(err instanceof Error ? err.message : 'File sync failed'));
+        });
     } else {
+      isLlmChangeRef.current = false; // User is editing files — any future errors are user-caused
       console.log('[PreviewManager] Syncing files...', changed.map(f => f.path));
       syncChangedFiles(webContainer, changed)
         .then(() => {
           prevFilesRef.current = currentFlat;
         })
-        .catch(err => console.error('[PreviewManager] Sync failed:', err));
+        .catch(err => {
+          console.error('[PreviewManager] Sync failed:', err);
+          dispatch(setPreviewError(err instanceof Error ? err.message : 'File sync failed'));
+        });
     }
   }, [webContainer, files, isBuildingApp, startPreview, dispatch]);
+
+  // Listen for browser runtime errors from the preview iframe
+  useEffect(() => {
+    if (!webContainer) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unsubscribe = webContainer.on('preview-message', (message: any) => {
+      const error = parsePreviewMessage(message);
+      if (!error) return;
+
+      dispatch(addError(error));
+      if (isLlmChangeRef.current) {
+        queueLlmError(error);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [webContainer, dispatch, queueLlmError]);
 
   useEffect(() => {
     if (isBuildingApp && !hasStartedOnce.current) {
