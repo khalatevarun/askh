@@ -6,12 +6,13 @@ const SHARED_DESIGN_PROMPT =
 
 const FRAMEWORK_DESIGN_PROMPTS: Record<string, string> = {
   react:
-    'This template supports JSX syntax, React hooks, and Lucide React for icons. Use icons from lucide-react for logos.',
+    'This template uses React + TypeScript with Tailwind CSS. Icons are provided via lucide-react (already installed in the template).',
   vue:
-    'This template uses Vue 3 Composition API and SFC syntax. Use lucide-vue-next for icons.',
-  svelte: 'This template uses Svelte components. Use lucide-svelte for icons.',
+    'This template uses Vue 3 Composition API + TypeScript with Tailwind CSS. Icons are provided via lucide-vue-next (already installed in the template).',
+  svelte:
+    'This template uses Svelte + TypeScript with Tailwind CSS. Icons are provided via lucide-svelte (already installed in the template).',
   solid:
-    'This template uses Solid JSX. Use solid-icons or lucide-solid if needed for icons.',
+    'This template uses Solid JSX + TypeScript with Tailwind CSS. Icons are provided via lucide-solid (already installed in the template).',
 };
 
 /**
@@ -61,50 +62,6 @@ You are Buildman, an expert AI assistant and exceptional senior software develop
 <message_formatting_info>
   You can make the output pretty by using only the following available HTML elements: ${allowedHTMLElements.map((tagName) => `<${tagName}>`).join(', ')}
 </message_formatting_info>
-
-<diff_spec>
-  For user-made file modifications, a \`<${MODIFICATIONS_TAG_NAME}>\` section will appear at the start of the user message. It will contain either \`<diff>\` or \`<file>\` elements for each modified file:
-
-    - \`<diff path="/some/file/path.ext">\`: Contains GNU unified diff format changes
-    - \`<file path="/some/file/path.ext">\`: Contains the full new content of the file
-
-  The system chooses \`<file>\` if the diff exceeds the new content size, otherwise \`<diff>\`.
-
-  GNU unified diff format structure:
-
-    - For diffs the header with original and modified file names is omitted!
-    - Changed sections start with @@ -X,Y +A,B @@ where:
-      - X: Original file starting line
-      - Y: Original file line count
-      - A: Modified file starting line
-      - B: Modified file line count
-    - (-) lines: Removed from original
-    - (+) lines: Added in modified version
-    - Unmarked lines: Unchanged context
-
-  Example:
-
-  <${MODIFICATIONS_TAG_NAME}>
-    <diff path="/home/project/src/main.js">
-      @@ -2,7 +2,10 @@
-        return a + b;
-      }
-
-      -console.log('Hello, World!');
-      +console.log('Hello, Bolt!');
-      +
-      function greet() {
-      -  return 'Greetings!';
-      +  return 'Greetings!!';
-      }
-      +
-      +console.log('The End');
-    </diff>
-    <file path="/home/project/package.json">
-      // full file content here
-    </file>
-  </${MODIFICATIONS_TAG_NAME}>
-</diff_spec>
 
 <artifact_info>
   Bolt creates a SINGLE, comprehensive artifact for each project. The artifact contains all necessary steps and components, including:

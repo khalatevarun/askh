@@ -31,6 +31,7 @@ const files = [
     "preview": "vite preview"
   },
   "dependencies": {
+    "lucide-solid": "^0.344.0",
     "solid-js": "^1.8.15"
   },
   "devDependencies": {
@@ -145,9 +146,12 @@ render(() => <App />, document.getElementById('root')!);
   },
   {
     path: "src/App.tsx",
-    content: `export default function App() {
+    content: `import { Sparkles } from 'lucide-solid';
+
+export default function App() {
   return (
-    <div class="min-h-screen bg-gray-100 flex items-center justify-center">
+    <div class="min-h-screen bg-gray-100 flex items-center justify-center gap-2">
+      <Sparkles class="w-5 h-5 text-gray-600" />
       <p>Start prompting (or editing) to see magic happen :)</p>
     </div>
   );
