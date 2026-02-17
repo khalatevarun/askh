@@ -31,8 +31,8 @@ import { v4 as uuidv4 } from 'uuid';
  * The input can have strings in the middle they need to be ignored
  */
 
-/** Extract the title from the first boltArtifact in the XML (e.g. for checkpoint labels). */
-export function getArtifactTitle(xml: string): string {
+/** Extract the title from the first response block in the XML (e.g. for checkpoint labels). */
+export function getProjectTitle(xml: string): string {
   const titleMatch = xml.match(/title="([^"]*)"/);
   return titleMatch ? titleMatch[1] : 'Project Files';
 }
@@ -48,13 +48,10 @@ export function parseXml(response: string): Step[] {
   
     const xmlContent = xmlMatch[1];
     const steps: Step[] = [];
-    // Extract artifact title
-    const artifactTitle = getArtifactTitle(response);
-  
-    // Add initial artifact step
+    const projectTitle = getProjectTitle(response);
     steps.push({
       id: uuidv4(),
-      title: artifactTitle,
+      title: projectTitle,
       description: '',
       type: StepType.CreateFolder,
       status: 'pending'

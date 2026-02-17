@@ -80,7 +80,7 @@ export function ChatTimeline({ initialPrompt, onPreview, onRevert, isWaitingForR
     }
     return (
       <p className="text-sm text-muted-foreground py-4 px-2">
-        No messages yet. Submit a prompt to create your first artifact.
+        No messages yet. Submit a prompt to create your first project.
       </p>
     );
   }

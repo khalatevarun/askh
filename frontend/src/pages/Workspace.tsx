@@ -28,7 +28,7 @@ import {
   submitFollowUp,
 } from '@/store/workspaceSlice';
 import { appendChatItems, appendUserMessage, clearChat } from '@/store/chatSlice';
-import { getArtifactTitle, parseXml } from '@/steps';
+import { getProjectTitle, parseXml } from '@/steps';
 import { applyStepsToFiles } from '@/utility/file-tree';
 import { getNarrativeFromAssistantContent, stripModificationsBlock } from '@/utility/chat-content';
 
@@ -68,7 +68,7 @@ export default function Workspace() {
         const { files: filesAfterTemplate } = applyStepsToFiles([], templateSteps);
         const newSteps = parseXml(chatXml);
         const { files: newFiles } = applyStepsToFiles(filesAfterTemplate, newSteps);
-        const label = getArtifactTitle(chatXml);
+        const label = getProjectTitle(chatXml);
         const cp = createCheckpoint(newFiles, allMessages, label, 1);
         const cleanMessages = allMessages.slice(2).map(m =>
           m.role === 'assistant'
@@ -91,7 +91,7 @@ export default function Workspace() {
       const { xml, allMessages } = result.payload;
       const newSteps = parseXml(xml);
       const { files: newFiles } = applyStepsToFiles(files, newSteps);
-      const label = getArtifactTitle(xml);
+      const label = getProjectTitle(xml);
       const cp = createCheckpoint(newFiles, allMessages, label, checkpoints.length + 1);
       const prevLen = checkpoints.length === 0 ? 0 : checkpoints[checkpoints.length - 1].llmMessages.length;
       const newMessages = allMessages.slice(prevLen)

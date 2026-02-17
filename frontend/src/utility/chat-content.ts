@@ -1,12 +1,12 @@
 /**
- * Strips artifact XML (e.g. <boltArtifact>...</boltArtifact>) from assistant
+ * Strips response XML (e.g. <boltArtifact>...</boltArtifact>) from assistant
  * message content and returns only the narrative text before and after.
  */
 const BOLT_ARTIFACT_REGEX = /<boltArtifact[^>]*>[\s\S]*?<\/boltArtifact>/gi;
 
 export function getNarrativeFromAssistantContent(content: string): string {
-  const withoutArtifacts = content.replace(BOLT_ARTIFACT_REGEX, '').trim();
-  return withoutArtifacts || 'Generated artifact';
+  const withoutXml = content.replace(BOLT_ARTIFACT_REGEX, '').trim();
+  return withoutXml || 'Generated';
 }
 
 const BOLT_MODIFICATIONS_REGEX = /<bolt_file_modifications>[\s\S]*?<\/bolt_file_modifications>/gi;
