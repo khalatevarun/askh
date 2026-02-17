@@ -20,6 +20,8 @@ export const handleDownload = async (files: FileItem[]) => {
 
   addFilesToZip(files, zip);
 
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '').replace('T', '-');
+  const zipName = `askh-project-${timestamp}.zip`;
   const content = await zip.generateAsync({ type: 'blob' });
-  saveAs(content, 'project.zip');
+  saveAs(content, zipName);
 };
