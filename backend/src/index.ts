@@ -16,7 +16,27 @@ const openai = new OpenAI({
 });
 
 const app = express();
-app.use(cors());
+
+const envOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+  : [];
+const LOCAL_ORIGINS = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+const ALLOWED_ORIGINS = [...new Set([...envOrigins, ...LOCAL_ORIGINS])];
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (origin === undefined || ALLOWED_ORIGINS.includes(origin)) {
+        cb(null, true);
+      } else {
+        cb(null, false);
+      }
+    },
+  })
+);
 app.use(express.json());
 
 const MODEL = "arcee-ai/trinity-large-preview:free";

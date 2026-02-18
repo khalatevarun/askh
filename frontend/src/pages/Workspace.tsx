@@ -122,7 +122,7 @@ export default function Workspace() {
         const { files: filesAfterTemplate } = applyStepsToFiles([], templateSteps);
         const newSteps = parseXml(chatXml);
         const { files: newFiles } = applyStepsToFiles(filesAfterTemplate, newSteps);
-        const label = getArtifactTitle(chatXml);
+        const label = getProjectTitle(chatXml);
         const cp = createCheckpoint(newFiles, allMessages, label, 1);
         const cleanMessages = allMessages.slice(2).map(m =>
           m.role === 'assistant'
