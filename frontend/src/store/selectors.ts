@@ -48,6 +48,7 @@ export const selectPrimaryStatusMessage = createSelector(
     if (preview.status !== 'idle' && preview.status !== 'running') {
       const labels: Record<string, string> = {
         building: 'Building your app...',
+        'sandbox-warming': 'Sandbox ready, waiting for AI code...',
         mounting: 'Setting up project...',
         installing: 'Installing dependencies...',
         starting: 'Starting dev server...',

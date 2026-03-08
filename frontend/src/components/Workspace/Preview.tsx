@@ -9,7 +9,8 @@ import { fadeIn } from '@/utility/motion';
 const STATUS_DISPLAY: Record<Exclude<PreviewStatus, 'running'>, { title: string; subtitle?: string }> = {
   idle: { title: 'Preview not available', subtitle: 'Click below to start the preview' },
   building: { title: 'Building your app...', subtitle: 'Generating code with AI' },
-  mounting: { title: 'Setting up sandbox...', subtitle: 'Creating cloud sandbox and installing dependencies' },
+  'sandbox-warming': { title: 'Sandbox ready...', subtitle: 'Waiting for AI-generated code' },
+  mounting: { title: 'Setting up sandbox...', subtitle: 'Syncing code and installing dependencies' },
   installing: { title: 'Installing dependencies...', subtitle: 'Running npm install' },
   starting: { title: 'Starting dev server...', subtitle: 'Waiting for Vite to be ready' },
   error: { title: 'Something went wrong', subtitle: 'Check the console for details' },
@@ -45,7 +46,7 @@ export function Preview() {
 
   // All other states — show status message
   const display = STATUS_DISPLAY[previewState.status as Exclude<PreviewStatus, 'running'>] ?? STATUS_DISPLAY.idle;
-  const showSpinner = ['building', 'mounting', 'installing', 'starting'].includes(previewState.status);
+  const showSpinner = ['building', 'sandbox-warming', 'mounting', 'installing', 'starting'].includes(previewState.status);
   const showStartButton = previewState.status === 'idle' || previewState.status === 'error';
 
   return (

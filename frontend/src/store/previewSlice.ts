@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-export type PreviewStatus = 'idle' | 'building' | 'mounting' | 'installing' | 'starting' | 'running' | 'error';
+export type PreviewStatus = 'idle' | 'building' | 'sandbox-warming' | 'mounting' | 'installing' | 'starting' | 'running' | 'error';
 
 export interface PreviewState {
   url: string;
