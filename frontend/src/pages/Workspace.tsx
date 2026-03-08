@@ -4,7 +4,6 @@ import Content from '@/components/Workspace/Content';
 import { ChatTimeline } from '@/components/ChatTimeline';
 import { ErrorBox } from '@/components/ErrorBox';
 import { ConnectionErrorBanner } from '@/components/ConnectionErrorBanner';
-import { useWebContainer } from '@/hooks/useWebContainer';
 import { useCheckpoint } from '@/hooks/useCheckpoint';
 import { handleDownload } from '@/utility/helper';
 import { BACKEND_URL, readSseStream } from '@/utility/api';
@@ -42,8 +41,6 @@ export default function Workspace() {
   const state = location.state as { prompt?: string; framework?: Framework } | undefined;
   const prompt = state?.prompt ?? '';
   const framework = state?.framework ?? DEFAULT_FRAMEWORK;
-  const webContainer = useWebContainer();
-
   const dispatch = useAppDispatch();
   const files = useAppSelector(selectFiles);
   const userPrompt = useAppSelector(selectUserPrompt);
@@ -233,7 +230,6 @@ export default function Workspace() {
       {/* Content Area */}
       <div className="flex-1 min-w-0">
         <Content
-          webContainer={webContainer}
           onDownload={() => handleDownload(files)}
           editorReadOnly={isBuildingApp}
         />

@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { editFile, initWorkspace, submitFollowUp } from './workspaceSlice';
 
-export type ErrorSource = 'npm-install' | 'vite-compilation' | 'runtime' | 'dev-server-crash';
+export type ErrorSource = 'npm-install' | 'vite-compilation' | 'runtime' | 'dev-server-crash' | 'sandbox-create';
 
 export interface AppError {
   id: string;

@@ -1,27 +1,22 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import type { WebContainer } from '@webcontainer/api';
-import { usePreviewManager } from '../../hooks/usePreviewManager';
+import { useModalSandboxManager } from '../../hooks/useModalSandboxManager';
 import { useAppSelector } from '@/store/hooks';
 import { selectPreviewState, selectGlobalError } from '@/store/selectors';
 import type { PreviewStatus } from '@/store/previewSlice';
 import { fadeIn } from '@/utility/motion';
 
-interface PreviewProps {
-  webContainer: WebContainer | null;
-}
-
 /** Status message map for non-running states. */
 const STATUS_DISPLAY: Record<Exclude<PreviewStatus, 'running'>, { title: string; subtitle?: string }> = {
   idle: { title: 'Preview not available', subtitle: 'Click below to start the preview' },
   building: { title: 'Building your app...', subtitle: 'Generating code with AI' },
-  mounting: { title: 'Setting up project...', subtitle: 'Mounting files into the container' },
+  mounting: { title: 'Setting up sandbox...', subtitle: 'Creating cloud sandbox and installing dependencies' },
   installing: { title: 'Installing dependencies...', subtitle: 'Running npm install' },
   starting: { title: 'Starting dev server...', subtitle: 'Waiting for Vite to be ready' },
   error: { title: 'Something went wrong', subtitle: 'Check the console for details' },
 };
 
-export function Preview({ webContainer }: PreviewProps) {
-  const { startManually } = usePreviewManager({ webContainer });
+export function Preview() {
+  const { startManually } = useModalSandboxManager();
   const previewState = useAppSelector(selectPreviewState);
   const globalError = useAppSelector(selectGlobalError);
 
