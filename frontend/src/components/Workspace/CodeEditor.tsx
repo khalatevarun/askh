@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useAppSelector } from '@/store/hooks';
 import { selectSelectedFile } from '@/store/selectors';
@@ -9,7 +10,15 @@ interface CodeEditorProps {
 
 export default function CodeEditor({ readOnly = false }: CodeEditorProps) {
   const file = useAppSelector(selectSelectedFile);
-  const { editFile: onChange } = useFileEdit();
+  const { editFile: onFileEdit } = useFileEdit();
+
+  // Stable onChange passed to Monaco so it never re-registers its
+  // onDidChangeModelContent listener on file switches.
+  const onChange = useCallback((value: string | undefined) => {
+    if (value !== undefined) {
+      onFileEdit(value);
+    }
+  }, [onFileEdit]);
 
   if (!file) {
     return (
@@ -33,7 +42,7 @@ export default function CodeEditor({ readOnly = false }: CodeEditorProps) {
       theme="vs-dark"
       language={language}
       value={file.content}
-      onChange={(value) => onChange(value ?? '')}
+      onChange={onChange}
       onMount={(editor, monaco) => {
         // Suppress semantic diagnostics (e.g. "Cannot find module 'react'"); we have no
         // node_modules in the editor, so rely on the build (WebContainer) for real errors.

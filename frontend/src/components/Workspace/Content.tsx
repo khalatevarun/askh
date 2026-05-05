@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import type { WebContainer } from '@webcontainer/api';
 import Tabs from './Tabs';
 import CodeEditor from './CodeEditor';
 import { Preview } from './Preview';
@@ -9,13 +8,11 @@ import { useAppSelector } from '@/store/hooks';
 import { selectSelectedFile } from '@/store/selectors';
 
 interface ContentProps {
-  webContainer: WebContainer | null;
   onDownload?: () => void;
   editorReadOnly?: boolean;
 }
 
 export default function Content({
-  webContainer,
   onDownload,
   editorReadOnly = false,
 }: ContentProps) {
@@ -58,7 +55,7 @@ export default function Content({
           style={{ pointerEvents: showPreview ? 'auto' : 'none' }}
           aria-hidden={!showPreview}
         >
-          <Preview webContainer={webContainer} />
+          <Preview />
         </motion.div>
       </div>
     </div>

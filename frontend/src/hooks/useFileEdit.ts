@@ -6,12 +6,19 @@ import { editFile } from '../store/workspaceSlice';
 export function useFileEdit() {
   const dispatch = useAppDispatch();
   const selectedFile = useAppSelector(selectSelectedFile);
+  const selectedFileRef = useRef(selectedFile);
+  selectedFileRef.current = selectedFile;
   const pendingSaveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
+  // Stable callback — never recreated. Uses selectedFileRef so it always reads
+  // the latest selected file without capturing it as a closure dependency.
+  // This prevents Monaco from re-registering its onChange listener on every file
+  // click, which was the source of spurious sync API calls.
   const handleEditFile = useCallback(
     (content: string) => {
-      if (!selectedFile?.path) return;
-      const targetPath = selectedFile.path;
+      const currentFile = selectedFileRef.current;
+      if (!currentFile?.path) return;
+      const targetPath = currentFile.path;
 
       const existing = pendingSaveTimers.current[targetPath];
       if (existing) clearTimeout(existing);
@@ -21,7 +28,7 @@ export function useFileEdit() {
         delete pendingSaveTimers.current[targetPath];
       }, 500);
     },
-    [selectedFile, dispatch]
+    [dispatch]
   );
 
   return { editFile: handleEditFile };

@@ -13,6 +13,7 @@ export const selectUserPrompt = (state: RootState) => state.workspace.userPrompt
 export const selectActiveOperations = (state: RootState) => state.workspace.activeOperations;
 export const selectGlobalError = (state: RootState) => state.workspace.globalError;
 export const selectIsEnhancingPrompt = (state: RootState) => state.workspace.isEnhancingPrompt;
+export const selectFramework = (state: RootState) => state.workspace.framework;
 export const selectCheckpoints = (state: RootState) => state.checkpoint.checkpoints;
 export const selectChatItems = (state: RootState) => state.chat.items;
 export const selectPreviewState = (state: RootState) => state.preview;
@@ -47,6 +48,7 @@ export const selectPrimaryStatusMessage = createSelector(
     if (preview.status !== 'idle' && preview.status !== 'running') {
       const labels: Record<string, string> = {
         building: 'Building your app...',
+        'sandbox-warming': 'Sandbox ready, waiting for AI code...',
         mounting: 'Setting up project...',
         installing: 'Installing dependencies...',
         starting: 'Starting dev server...',

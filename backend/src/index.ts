@@ -188,4 +188,48 @@ app.post("/chat", async (req, res) => {
   res.json({ response: content ?? "" });
 });
 
+// ---------------------------------------------------------------------------
+// Sandbox proxy routes — forward to Modal Python service
+// ---------------------------------------------------------------------------
+
+const MODAL_SANDBOX_URL = process.env.MODAL_SANDBOX_SERVICE_URL ?? "";
+
+async function proxyToModal(
+  path: string,
+  method: string,
+  body?: object
+): Promise<{ status: number; data: unknown }> {
+  const url = `${MODAL_SANDBOX_URL}${path}`;
+  const resp = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  const data = await resp.json().catch(() => ({}));
+  return { status: resp.status, data };
+}
+
+app.post("/sandbox/create", async (req, res) => {
+  const { files, framework } = req.body;
+  const result = await proxyToModal("/sandbox", "POST", { files, framework });
+  res.status(result.status).json(result.data);
+});
+
+app.post("/sandbox/:id/sync", async (req, res) => {
+  const { files } = req.body;
+  const result = await proxyToModal(`/sandbox/${req.params.id}/sync`, "POST", { files });
+  res.status(result.status).json(result.data);
+});
+
+app.post("/sandbox/:id/restart", async (req, res) => {
+  const { files } = req.body;
+  const result = await proxyToModal(`/sandbox/${req.params.id}/restart`, "POST", { files });
+  res.status(result.status).json(result.data);
+});
+
+app.delete("/sandbox/:id", async (req, res) => {
+  const result = await proxyToModal(`/sandbox/${req.params.id}`, "DELETE");
+  res.status(result.status).json(result.data);
+});
+
 app.listen(3000);
